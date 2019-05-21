@@ -2,6 +2,7 @@ package frc.team4069.robot.subsystems
 
 import com.ctre.phoenix.motorcontrol.ControlMode
 import com.ctre.phoenix.motorcontrol.DemandType
+import com.ctre.phoenix.motorcontrol.can.TalonSRX
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
@@ -16,16 +17,14 @@ import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
 import frc.team4069.saturn.lib.mathematics.units.inch
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STU
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
-import frc.team4069.saturn.lib.mathematics.units.nativeunits.fromModel
-import frc.team4069.saturn.lib.motor.NativeSaturnSRX
-import frc.team4069.saturn.lib.motor.SaturnSRX
+import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import kotlin.math.absoluteValue
 import kotlin.properties.Delegates
 
 object Intake : SaturnSubsystem() {
-    private val talon = NativeSaturnSRX(RobotMap.Intake.MAIN_SRX, 4096.STU)
+    private val talon = TalonSRX(RobotMap.Intake.MAIN_SRX)
 
-    val pivot = NativeSaturnSRX(RobotMap.Intake.PIVOT_SRX, 4096.STU)
+    val pivot = TalonSRX(RobotMap.Intake.PIVOT_SRX)
     val slide = SaturnSRX(RobotMap.Intake.SLIDE_SRX, Constants.INTAKE_SLIDE_MODEL)
 
     var overdrive = false
@@ -48,41 +47,42 @@ object Intake : SaturnSubsystem() {
 
     init {
         slide.apply {
-            val maxVel = 38.65.inch.velocity.fromModel(Constants.INTAKE_SLIDE_MODEL)
-            kP = 1.2
-            kF = 1023 / maxVel.STUPer100ms
-            motionAcceleration = 69.inch.acceleration
-            motionCruiseVelocity = 55.inch.velocity
+            val maxVel = Constants.INTAKE_SLIDE_MODEL.toNativeUnitVelocity(38.65.inch.velocity)
+            talon.config_kP(0, 1.2)
+            talon.config_kF(0, 1023 / maxVel.STUPer100ms)
+            motionProfileAcceleration = 69.inch.acceleration
+            motionProfileCruiseVelocity = 55.inch.velocity
 
-            softLimitForward = 11.inch
-            softLimitForwardEnabled = true
-            softLimitReverse = 0.inch
-            softLimitReverseEnabled = true
+            useMotionProfileForPosition = true
 
-            inverted = true
+            talon.configForwardSoftLimitThreshold(Constants.INTAKE_SLIDE_MODEL.toNativeUnitPosition(11.inch).value.toInt())
+            talon.configForwardSoftLimitEnable(true)
+            talon.configReverseSoftLimitThreshold(0)
+            talon.configReverseSoftLimitEnable(true)
+
+            outputInverted = true
         }
 
         pivot.apply {
             setSensorPhase(true)
-            kP = 0.4
-            kD = 0.1
+            config_kP(0, 0.4)
+            config_kD(0, 0.1)
 //            kI = 0.0001
-            kI = 0.00005
+            config_kI(0, 0.00005)
+
             config_kP(1, 0.5)
             config_kD(1, 1.3)
             configClosedloopRamp(0.95)
-//            softLimitReverse = 0.STU
-//            softLimitReverseEnabled = true
         }
     }
 
     val angle: Rotation2d
-        get() = (-(360.0 * (pivot.sensorPosition / 7540.STU)).degree + 90.degree)
+        get() = (-(360.0 * (pivot.selectedSensorPosition / 7540)).degree + 90.degree)
 
 
     override fun lateInit() {
-        pivot.sensorPosition = 0.STU
-        slide.sensorPosition = 0.inch
+        pivot.selectedSensorPosition = 0
+        slide.encoder.resetPosition(0.inch)
     }
 
     override fun periodic() {
@@ -108,13 +108,13 @@ object Intake : SaturnSubsystem() {
     }
 
     var slidePosition: Length
-        get() = slide.sensorPosition
+        get() = slide.encoder.position
         set(value) {
-            slide.set(ControlMode.MotionMagic, value)
+            slide.setPosition(value)
         }
 
 
-    fun get() = talon.get()
+    fun get() = talon.motorOutputPercent
 
     override fun teleopReset() {
         OperatorControlIntakeCommand().start()
@@ -127,8 +127,7 @@ object Intake : SaturnSubsystem() {
     }
 
     fun setSlide(speed: Double) {
-        slide.set(ControlMode.PercentOutput, speed)
-
+        slide.setDutyCycle(speed)
     }
 
     enum class PivotPosition {

@@ -5,43 +5,53 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.elevator.OperatorElevatorCommand
+import frc.team4069.robot.control.elevator.ElevatorController
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
-import frc.team4069.saturn.lib.mathematics.units.Length
-import frc.team4069.saturn.lib.mathematics.units.amp
+import frc.team4069.saturn.lib.mathematics.units.*
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
+import frc.team4069.saturn.lib.mathematics.units.derivedunits.hertz
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
-import frc.team4069.saturn.lib.mathematics.units.inch
-import frc.team4069.saturn.lib.mathematics.units.meter
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
-import frc.team4069.saturn.lib.mathematics.units.nativeunits.fromModel
-import frc.team4069.saturn.lib.motor.NativeSaturnSRX
-import frc.team4069.saturn.lib.motor.SaturnSRX
+import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
+import frc.team4069.saturn.lib.util.launchFrequency
+import kotlinx.coroutines.GlobalScope
 
 object Elevator : SaturnSubsystem() {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
-    private val slaveTalon = NativeSaturnSRX(RobotMap.Elevator.SLAVE_SRX)
+    private val slaveTalon = SaturnSRX(RobotMap.Elevator.SLAVE_SRX, Constants.ELEVATOR_MODEL)
+
 
     val MAX_HEIGHT = 31.inch
 
+    val controller = ElevatorController()
+
     init {
         defaultCommand = OperatorElevatorCommand()
-        val maxVel = 1.133.meter.velocity.fromModel(Constants.ELEVATOR_MODEL)
+        val maxVel = Constants.ELEVATOR_MODEL.toNativeUnitVelocity(1.133.meter.velocity)
+                .STUPer100ms
         masterTalon.apply {
-            continuousCurrentLimit = 35.amp
-            currentLimitingEnabled = true
-            inverted = true
-            kP = 0.5
-            kF = 1023.0 / maxVel.STUPer100ms
-            kD = 0.05
-            motionCruiseVelocity = 30.inch.velocity
-            motionAcceleration = 45.inch.acceleration
+            configCurrentLimit(true, SaturnSRX.CurrentLimitConfig(
+                    peakCurrentLimit = 0.amp,
+                    peakCurrentLimitDuration = 0.second,
+                    continuousCurrentLimit = 35.amp
+            ))
+            outputInverted = true
+            talon.config_kP(0, 0.5)
+            talon.config_kF(0, 1023.0 / maxVel)
+            talon.config_kD(0, 0.05)
+
+            motionProfileCruiseVelocity = 30.inch.velocity
+            motionProfileAcceleration = 45.inch.acceleration
+            useMotionProfileForPosition = true
 //            allowedClosedLoopError = 0.8.inch
-            softLimitForward = MAX_HEIGHT
-            softLimitReverse = 0.inch
-            softLimitForwardEnabled = true
-            //softLimitReverseEnabled = true
-            setSensorPhase(true)
+            talon.configForwardSoftLimitThreshold(Constants.ELEVATOR_MODEL.toNativeUnitPosition(MAX_HEIGHT).value.toInt())
+            talon.configReverseSoftLimitThreshold(0)
+            talon.configForwardSoftLimitEnable(true)
+            encoder.encoderPhase = true
+        }
+
+        GlobalScope.launchFrequency(50.hertz) {
         }
 
         slaveTalon.follow(masterTalon)
@@ -56,27 +66,26 @@ object Elevator : SaturnSubsystem() {
     }
 
     fun set(output: Double) {
-        masterTalon.set(ControlMode.PercentOutput, output)
+        masterTalon.setDutyCycle(output)
     }
 
     fun set(position: Length) {
-        masterTalon.set(ControlMode.MotionMagic, position)
+        masterTalon.setPosition(position)
     }
 
     var position: Length
-        get() = masterTalon.sensorPosition
+        get() = masterTalon.encoder.position
         set(value) {
-            masterTalon.sensorPosition = value
+            masterTalon.encoder.resetPosition(value)
         }
 
     val velocity: LinearVelocity
-        get() = masterTalon.sensorVelocity
+        get() = masterTalon.encoder.velocity
 
 
     override fun periodic() {
         SmartDashboard.putNumber("Elevator Position", position.inch)
     }
-
 
     /**
      * Preset positions of the elevator

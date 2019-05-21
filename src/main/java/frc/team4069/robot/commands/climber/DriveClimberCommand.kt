@@ -6,7 +6,7 @@ import frc.team4069.saturn.lib.commands.SaturnCommand
 
 class DriveClimberCommand : SaturnCommand(BoostCaboose) {
     override suspend fun initialize() {
-        BoostCaboose.liftMaster.stopMotor()
+        BoostCaboose.liftMaster.setNeutral()
     }
 
     override suspend fun execute() {

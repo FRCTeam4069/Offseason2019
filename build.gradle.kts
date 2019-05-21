@@ -8,7 +8,7 @@ import jaci.gradle.deploy.artifact.FileTreeArtifact
 import jaci.gradle.deploy.target.TargetsExtension
 
 plugins {
-    kotlin("jvm") version "1.3.11"
+    kotlin("jvm") version "1.3.31"
     id("edu.wpi.first.GradleRIO") version "2019.3.2"
 }
 
@@ -37,9 +37,8 @@ dependencies {
     compile(kotlin("stdlib"))
     compile("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.1.0")
     
-    compile("com.github.FRCTeam4069:SaturnLibrary:15987b582a")
-//    compile("frc.team4069:SaturnLibrary:2019.3.15")
-
+    compile("com.github.FRCTeam4069:SaturnLibrary:b0d166b728")
+    
     // WPILib
     wpi.deps.wpilib().forEach { compile(it) }
     wpi.deps.vendor.java().forEach { compile(it) }
