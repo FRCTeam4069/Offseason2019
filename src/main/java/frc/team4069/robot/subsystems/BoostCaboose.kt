@@ -14,7 +14,7 @@ import frc.team4069.saturn.lib.motor.rev.SaturnMAX
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
 
-object BoostCaboose : SaturnSubsystem() {
+object BoostCaboose : SaturnSubsystem(), Loggable {
     val model = NativeUnitLengthModel(20.49.STU, (2.9 / 2.0).inch)
     val liftMaster = SaturnMAX(RobotMap.Climber.MAIN_MAX, CANSparkMaxLowLevel.MotorType.kBrushless, model = model)
     private val liftSlave1 = SaturnMAX(RobotMap.Climber.SLAVE_MAX, CANSparkMaxLowLevel.MotorType.kBrushless, model = NativeUnitSensorModel(1.STU))
@@ -62,14 +62,14 @@ object BoostCaboose : SaturnSubsystem() {
         override fun skipLayout() = true
 
         @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
-        var voltage = 0.0
+        var voltage: Double = 0.0
 
         @Log(name = "Current", rowIndex = 1, columnIndex = 0)
-        var current = 0.0
+        var current: Double = 0.0
 
         // Outputs
-        var demand = 0.0
-        var pistonState = false
+        var demand: Double = 0.0
+        var pistonState: Boolean = false
     }
 
     override fun teleopReset() {

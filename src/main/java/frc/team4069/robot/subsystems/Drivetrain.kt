@@ -30,8 +30,11 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     val auxMotor = TalonSRX(RobotMap.Drivetrain.AUXILIARY_MAIN_SRX)
     val auxSlave = TalonSRX(RobotMap.Drivetrain.AUXILIARY_SLAVE_SRX)
 
-    private var currentState: State = State.Nothing
-    private var wantedState: State = State.Nothing
+    @Log.ToString(name = "Current State", rowIndex = 0, columnIndex = 5)
+    private var currentState = State.Nothing
+    private var wantedState = State.Nothing
+
+    private val periodicIO = PeriodicIO()
 
     override val gyro = SaturnPigeon(leftSlave.talon)
 
@@ -120,55 +123,69 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     }
 
     override fun tankDrive(left: Double, right: Double) {
-        wantedState = State.OpenLoop(left, right)
+        periodicIO.leftDemand = left
+        periodicIO.rightDemand = right
+        periodicIO.auxDutyCycle = 0.0
+        wantedState = State.OpenLoop
     }
 
     override fun periodic() {
-        //TODO: Telemetry
-        when(val state = wantedState) {
-            is State.OpenLoop -> {
-                leftMotor.setDutyCycle(state.left)
-                rightMotor.setDutyCycle(state.right)
+        periodicIO.leftVoltage = leftMotor.voltageOutput
+        periodicIO.rightVoltage = rightMotor.voltageOutput
+        periodicIO.leftCurrent = leftMotor.talon.outputCurrent
+        periodicIO.rightCurrent = rightMotor.talon.outputCurrent
+        periodicIO.leftPosition = leftPosition.meter
+        periodicIO.rightPosition = rightPosition.meter
+        periodicIO.leftVelocity = leftMotor.encoder.velocity.value
+        periodicIO.rightVelocity = rightMotor.encoder.velocity.value
+        periodicIO.gyroAngle = gyro().degree
 
-                if(state.aux != null) {
-                    auxMotor.set(ControlMode.PercentOutput, state.aux!!) // state is an immutable copy, compiler not smart enough that I can remove !!
-                }
+        //TODO: Telemetry
+        when (wantedState) {
+            State.OpenLoop -> {
+                leftMotor.setDutyCycle(periodicIO.leftDemand)
+                rightMotor.setDutyCycle(periodicIO.rightDemand)
+
+                auxMotor.set(ControlMode.PercentOutput, periodicIO.auxDutyCycle)
             }
-            is State.AuxOnly -> {
-                auxMotor.set(ControlMode.PercentOutput, state.demand)
+            State.PathFollowing -> {
+                leftMotor.setVelocity(periodicIO.leftDemand.meter.velocity, periodicIO.leftArbFF)
+                rightMotor.setVelocity(periodicIO.rightDemand.meter.velocity, periodicIO.rightArbFF)
             }
-            is State.PathFollowing -> {
-                leftMotor.setVelocity(state.leftVelocity, state.leftArbFF)
-                rightMotor.setVelocity(state.rightVelocity, state.rightArbFF)
+            State.MotionMagic -> {
+                leftMotor.setPosition(periodicIO.leftDemand.meter)
+                rightMotor.setPosition(periodicIO.rightDemand.meter)
             }
-            is State.MotionMagic -> {
-                leftMotor.setPosition(state.leftSetpoint)
-                rightMotor.setPosition(state.rightSetpoint)
-            }
-            is State.Nothing -> {
+            State.Nothing -> {
                 leftMotor.setNeutral()
                 rightMotor.setNeutral()
                 auxMotor.neutralOutput() // One of these things is not like the others
             }
         }
-        if(currentState != wantedState) currentState = wantedState
+        if (currentState != wantedState) currentState = wantedState
     }
 
     // Aux dt should only be used with %vbus.
     // Different gearing than normal dt, different motors
     // Not to be used in PID
-    fun setAux(vbus: Double) {
-        if(wantedState is State.OpenLoop) {
-            (wantedState as State.OpenLoop).aux = vbus // Command locking the subsystem means this shouldn't fail
-        }else {
-            wantedState = State.AuxOnly(vbus)
+    fun setAux(vbus: Double, onlyAux: Boolean) {
+        periodicIO.auxDutyCycle = vbus
+        wantedState = State.OpenLoop
+        if (onlyAux) {
+            periodicIO.leftDemand = 0.0
+            periodicIO.rightDemand = 0.0
         }
     }
 
     fun set(left: LinearVelocity, right: LinearVelocity, leftAff: Double = 0.0,
             rightAff: Double = 0.0) {
-
-        wantedState = State.PathFollowing(left, right, leftAff, rightAff)
+        periodicIO.apply {
+            leftDemand = left.value
+            rightDemand = right.value
+            leftArbFF = leftAff
+            rightArbFF = rightAff
+        }
+        wantedState = State.PathFollowing
     }
 
     fun reduceLimits() {
@@ -186,49 +203,57 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     }
 
     fun motionMagicRelative(length: Length) {
-        wantedState = State.MotionMagic(leftPosition + length, rightPosition + length)
+        periodicIO.apply {
+            leftDemand = this@Drivetrain.leftPosition.meter + length.meter
+            rightDemand = this@Drivetrain.rightPosition.meter + length.meter
+        }
+        wantedState = State.MotionMagic
     }
 
-    private sealed class State : Loggable {
+    private class PeriodicIO : Loggable {
         override fun configureLayoutType() = BuiltInLayouts.kGrid
         override fun skipLayout() = true
 
-        data class OpenLoop(
-                @Log(name = "Left Output", rowIndex = 0, columnIndex = 0)
-                val left: Double,
-                @Log(name = "Right Output", rowIndex = 1, columnIndex = 0)
-                val right: Double,
-                @Log(name = "Back Output", rowIndex = 2, columnIndex = 0)
-                var aux: Double? = null) : State()
+        @Log.VoltageView(name = "Left Voltage", width = 2, height = 1, rowIndex = 0, columnIndex = 0)
+        var leftVoltage: Double = 0.0
 
-        data class AuxOnly(
-                @Log(name = "Back Output", rowIndex = 0, columnIndex = 0)
-                val demand: Double) : State()
+        @Log.VoltageView(name = "Right Voltage", width = 2, height = 1, rowIndex = 0, columnIndex = 2)
+        var rightVoltage: Double = 0.0
 
-        data class MotionMagic(val leftSetpoint: Length, val rightSetpoint: Length) : State() {
-            @Log(name = "Left Setpoint (m)", rowIndex = 0, columnIndex = 0)
-            private val _leftSetpoint = leftSetpoint.meter
+        @Log(name = "Left Current", width = 2, height = 1, rowIndex = 1, columnIndex = 0)
+        var leftCurrent: Double = 0.0
 
-            @Log(name = "Right Setpoint (m)", rowIndex = 1, columnIndex = 0)
-            private val _rightSetpoint = rightSetpoint.meter
-        }
+        @Log(name = "Right Current", width = 2, height = 1, rowIndex = 1, columnIndex = 2)
+        var rightCurrent: Double = 0.0
 
-        data class PathFollowing(
-                val leftVelocity: LinearVelocity,
-                val rightVelocity: LinearVelocity,
-                @Log(name = "Left Arbitrary Feedforward", rowIndex = 0, columnIndex = 1)
-                val leftArbFF: Double,
-                @Log(name = "Right Arbitrary Feedforward", rowIndex = 1, columnIndex = 1)
-                val rightArbFF: Double
-        ) : State() {
-            @Log(name = "Left Velocity (m/s)", rowIndex = 0, columnIndex = 0)
-            private val _leftVelocity = leftVelocity.value
-            @Log(name = "Right Velocity (m/s)", rowIndex = 1, columnIndex = 0)
-            private val _rightVelocity = rightVelocity.value
-        }
+        @Log(name = "Left Position (m)", width = 2, height = 1, rowIndex = 2, columnIndex = 0)
+        var leftPosition: Double = 0.0
 
-        object Nothing : State() {
-            override fun toString() = "Nothing"
-        }
+        @Log(name = "Right Position (m)", width = 2, height = 1, rowIndex = 2, columnIndex = 2)
+        var rightPosition: Double = 0.0
+
+        @Log(name = "Left Velocity (m/s)", width = 2, height = 1, rowIndex = 3, columnIndex = 0)
+        var leftVelocity: Double = 0.0
+
+        @Log(name = "Right Velocity (m/s)", width = 2, height = 1, rowIndex = 3, columnIndex = 2)
+        var rightVelocity: Double = 0.0
+
+        @Log(name = "Gyro Angle", rowIndex = 4, columnIndex = 0)
+        var gyroAngle: Double = 0.0
+
+        // Outputs
+        var leftDemand: Double = 0.0
+        var leftArbFF: Double = 0.0
+        var rightDemand: Double = 0.0
+        var rightArbFF: Double = 0.0
+
+        var auxDutyCycle: Double = 0.0
+    }
+
+    private enum class State {
+        OpenLoop,
+        PathFollowing,
+        MotionMagic,
+        Nothing
     }
 }

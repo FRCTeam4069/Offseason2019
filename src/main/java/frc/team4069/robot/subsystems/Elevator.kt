@@ -18,11 +18,11 @@ object Elevator : SaturnSubsystem(), Loggable {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
     private val slaveTalon = SaturnSRX(RobotMap.Elevator.SLAVE_SRX, Constants.ELEVATOR_MODEL)
 
-    private val telemetry = SubsystemTelemetry()
+    private val periodicIO = PeriodicIO()
 
     @Log(name = "Current state", rowIndex = 0, columnIndex = 3)
-    private var currentState: State = State.Nothing
-    private var wantedState: State = State.Nothing
+    private var currentState = State.Nothing
+    private var wantedState = State.Nothing
 
     val MAX_HEIGHT = 31.inch
 
@@ -65,11 +65,13 @@ object Elevator : SaturnSubsystem(), Loggable {
     }
 
     fun setDutyCycle(output: Double) {
-        wantedState = State.OpenLoop(output)
+        periodicIO.demand = output
+        wantedState = State.OpenLoop
     }
 
     fun setPosition(position: Length) {
-        wantedState = State.MotionMagic(position)
+        periodicIO.demand = position.meter
+        wantedState = State.MotionMagic
     }
 
     val position: Length
@@ -80,50 +82,46 @@ object Elevator : SaturnSubsystem(), Loggable {
 
 
     override fun periodic() {
-        telemetry.voltage = masterTalon.voltageOutput
-        telemetry.current = masterTalon.talon.outputCurrent
-        telemetry.position = position.inch
-        telemetry.velocity = velocity.inchesPerSecond
+        periodicIO.voltage = masterTalon.voltageOutput
+        periodicIO.current = masterTalon.talon.outputCurrent
+        periodicIO.position = position.inch
+        periodicIO.velocity = velocity.inchesPerSecond
 
-        when(val state = wantedState) {
-            is State.OpenLoop -> {
-                masterTalon.setDutyCycle(state.dutyCycle)
+        when(wantedState) {
+            State.OpenLoop -> {
+                masterTalon.setDutyCycle(periodicIO.demand)
             }
-            is State.MotionMagic -> {
-                masterTalon.setPosition(state.setpoint)
+            State.MotionMagic -> {
+                masterTalon.setPosition(periodicIO.demand.meter)
+            }
+            State.Nothing -> {
+                masterTalon.setNeutral()
             }
         }
         if(currentState != wantedState) currentState = wantedState
     }
 
-    private class SubsystemTelemetry : Loggable {
+    private class PeriodicIO : Loggable {
         @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
-        var voltage = 0.0
+        var voltage: Double = 0.0
 
         @Log(name = "Current", rowIndex = 1, columnIndex = 0)
-        var current = 0.0
+        var current: Double = 0.0
 
         @Log(name = "Position (in.)", rowIndex = 0, columnIndex = 1)
-        var position = 0.0
+        var position: Double = 0.0
 
         @Log(name = "Velocity (in/s)", rowIndex = 1, columnIndex = 1)
-        var velocity = 0.0
+        var velocity: Double = 0.0
+
+        // Outputs
+        var demand: Double = 0.0
     }
 
-    private sealed class State {
-        data class MotionMagic(val setpoint: Length) : State(), Loggable {
-            @Log(name = "Setpoint (in)", rowIndex = 0, columnIndex = 0)
-            private val _setpoint = setpoint.inch
-        }
-
-        data class OpenLoop(
-                @Log(name = "Duty cycle", rowIndex = 0, columnIndex = 0)
-                val dutyCycle: Double
-        ) : State(), Loggable
-
-        object Nothing : State(), Loggable {
-            override fun toString() = "Nothing"
-        }
+    private enum class State {
+        OpenLoop,
+        MotionMagic,
+        Nothing
     }
 
     /**

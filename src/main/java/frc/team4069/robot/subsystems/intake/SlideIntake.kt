@@ -10,6 +10,7 @@ import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.inchesPerSecond
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
 import frc.team4069.saturn.lib.mathematics.units.inch
+import frc.team4069.saturn.lib.mathematics.units.meter
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
@@ -18,11 +19,11 @@ import io.github.oblarg.oblog.annotations.Log
 object SlideIntake : SaturnSubsystem(), Loggable {
     private val slide = SaturnSRX(RobotMap.Intake.SLIDE_SRX, Constants.INTAKE_SLIDE_MODEL)
 
-    private val telemetry = SubsystemTelemetry()
+    private val periodicIO = PeriodicIO()
 
-    @Log(name = "Current State", rowIndex = 0, columnIndex = 3)
-    private var currentState: State = State.Nothing
-    private var wantedState: State = State.Nothing
+    @Log.ToString(name = "Current State", rowIndex = 0, columnIndex = 3)
+    private var currentState = State.Nothing
+    private var wantedState = State.Nothing
 
     init {
         slide.apply {
@@ -52,31 +53,33 @@ object SlideIntake : SaturnSubsystem(), Loggable {
     }
 
     override fun periodic() {
-        telemetry.voltage = slide.voltageOutput
-        telemetry.current = slide.talon.outputCurrent
-        telemetry.position = slide.encoder.position.inch
-        telemetry.velocity = slide.encoder.velocity.inchesPerSecond
+        periodicIO.voltage = slide.voltageOutput
+        periodicIO.current = slide.talon.outputCurrent
+        periodicIO.position = slide.encoder.position.inch
+        periodicIO.velocity = slide.encoder.velocity.inchesPerSecond
 
-        when(val state = wantedState) {
-            is State.OpenLoop -> {
-                slide.setDutyCycle(state.dutyCycle)
+        when(wantedState) {
+            State.OpenLoop -> {
+                slide.setDutyCycle(periodicIO.demand)
             }
-            is State.MotionMagic -> {
-                slide.setPosition(state.setpoint)
+            State.MotionMagic -> {
+                slide.setPosition(periodicIO.demand.meter)
             }
         }
         if(currentState != wantedState) currentState = wantedState
     }
 
     fun setDutyCycle(dutyCycle: Double) {
-        wantedState = State.OpenLoop(dutyCycle)
+        wantedState = State.OpenLoop
+        periodicIO.demand = dutyCycle
     }
 
     fun setPosition(position: Length) {
-        wantedState = State.MotionMagic(position)
+        wantedState = State.MotionMagic
+        periodicIO.demand = position.meter
     }
 
-    private class SubsystemTelemetry : Loggable {
+    private class PeriodicIO : Loggable {
         override fun configureLayoutType() = BuiltInLayouts.kGrid
         override fun skipLayout() = true
 
@@ -91,27 +94,14 @@ object SlideIntake : SaturnSubsystem(), Loggable {
 
         @Log(name = "Velocity (in/s)", rowIndex = 1, columnIndex = 1)
         var velocity = 0.0
+
+        // Outputs
+        var demand: Double = 0.0
     }
 
-    private sealed class State {
-        data class OpenLoop(
-                @Log(name = "Duty cycle", rowIndex = 0, columnIndex = 0)
-                val dutyCycle: Double
-        ) : State(), Loggable {
-            override fun configureLayoutType() = BuiltInLayouts.kGrid
-            override fun skipLayout() = true
-        }
-
-        data class MotionMagic(val setpoint: Length) : State(), Loggable {
-            override fun configureLayoutType() = BuiltInLayouts.kGrid
-            override fun skipLayout() = true
-
-            @Log(name = "Setpoint (in)", rowIndex = 0, columnIndex = 0)
-            private val _setpoint = setpoint.inch
-        }
-
-        object Nothing : State(), Loggable {
-            override fun toString() = "Nothing"
-        }
+    private enum class State {
+        OpenLoop,
+        MotionMagic,
+        Nothing
     }
 }

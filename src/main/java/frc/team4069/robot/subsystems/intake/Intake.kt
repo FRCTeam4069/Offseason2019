@@ -13,7 +13,7 @@ import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
 import kotlin.math.absoluteValue
 
-object Intake : SaturnSubsystem() {
+object Intake : SaturnSubsystem(), Loggable {
     private val talon = TalonSRX(RobotMap.Intake.MAIN_SRX)
 
     val pivot = TalonSRX(RobotMap.Intake.PIVOT_SRX)
@@ -105,24 +105,24 @@ object Intake : SaturnSubsystem() {
         override fun skipLayout() = true
 
         @Log.VoltageView(name = "Intake Voltage", rowIndex = 0, columnIndex = 0)
-        var intakeVoltage = 0.0
+        var intakeVoltage: Double = 0.0
 
         @Log(name = "Intake Current", rowIndex = 1, columnIndex = 0)
-        var intakeCurrent = 0.0
+        var intakeCurrent: Double = 0.0
 
         @Log.VoltageView(name = "Pivot Voltage", rowIndex = 0, columnIndex = 1)
-        var pivotVoltage = 0.0
+        var pivotVoltage: Double = 0.0
 
         @Log(name = "Pivot Current", rowIndex = 1, columnIndex = 1)
-        var pivotCurrent = 0.0
+        var pivotCurrent: Double = 0.0
 
         @Log(name = "Pivot Angle", rowIndex = 2, columnIndex = 1)
-        var pivotAngle = 0.0
+        var pivotAngle: Double = 0.0
 
         // Outputs
-        var intakeSpeed = 0.0
-        var pivotSpeed = 0.0
-        var pivotExtended = false
-        var intakeOverdrive = false
+        var intakeSpeed: Double = 0.0
+        var pivotSpeed: Double = 0.0
+        var pivotExtended: Boolean = false
+        var intakeOverdrive: Boolean = false
     }
 }
