@@ -12,12 +12,12 @@ class OperatorElevatorCommand : SaturnCommand(Elevator) {
         val spd = OI.elevatorSpeed // Deadbanded in OI
 
         if(spd != 0.0) {
-            Elevator.set(spd)
+            Elevator.setDutyCycle(spd)
             set = false
         }else {
             if(!set) {
 //                 Hold the elevator in place once operator lets off the stick
-                Elevator.set(Elevator.position)
+                Elevator.setPosition(Elevator.position)
                 set = true
             }
         }

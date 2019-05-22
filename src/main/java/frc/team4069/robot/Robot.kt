@@ -11,11 +11,14 @@ import frc.team4069.robot.commands.drive.auto.TeleoperatedSandstorm
 import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.subsystems.Elevator
-import frc.team4069.robot.subsystems.Intake
+import frc.team4069.robot.subsystems.intake.Intake
 import frc.team4069.robot.vision.VisionSystem
 import frc.team4069.saturn.lib.SaturnRobot
 import frc.team4069.saturn.lib.commands.SaturnCommandGroup
+import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import frc.team4069.saturn.lib.shuffleboard.chooser
+import io.github.oblarg.oblog.Loggable
+import io.github.oblarg.oblog.Logger
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 
 object Robot : SaturnRobot() {
@@ -24,6 +27,8 @@ object Robot : SaturnRobot() {
     private val compressor = Compressor()
 
     private lateinit var autoChooser: SendableChooser<SaturnCommandGroup>
+
+    val loggableSystems = arrayListOf<Loggable>()
 
     @ObsoleteCoroutinesApi
     override fun initialize() {
@@ -49,6 +54,8 @@ object Robot : SaturnRobot() {
             "Rocket Right (Backwards)" += RocketShipRightBackwardsAuto()
             "Teleoperated Sandstorm" += TeleoperatedSandstorm()
         }
+
+        Logger.configureLoggingAndConfig(this, false)
     }
 
     /**
@@ -63,6 +70,14 @@ object Robot : SaturnRobot() {
 
     override fun autonomousInit() {
         autoChooser.selected.start()
+    }
+
+    operator fun SaturnSubsystem.unaryPlus() {
+        addToSubsystemHandler(this)
+
+        if(this is Loggable) {
+            loggableSystems.add(this)
+        }
     }
 }
 

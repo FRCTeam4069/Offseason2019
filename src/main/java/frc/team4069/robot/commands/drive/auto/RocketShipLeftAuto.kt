@@ -5,7 +5,8 @@ import frc.team4069.robot.commands.drive.FollowPathCommand
 import frc.team4069.robot.commands.elevator.SetElevatorPositionCommand
 import frc.team4069.robot.commands.intake.AlignHatchIntakeCommand
 import frc.team4069.robot.subsystems.Elevator
-import frc.team4069.robot.subsystems.Intake
+import frc.team4069.robot.subsystems.intake.Intake
+import frc.team4069.robot.subsystems.intake.SlideIntake
 import frc.team4069.saturn.lib.commands.DelayCommand
 import frc.team4069.saturn.lib.commands.InstantRunnableCommand
 import frc.team4069.saturn.lib.commands.parallel
@@ -26,14 +27,14 @@ fun RocketShipLeftAuto() = sequential {
                     Translation2d(18.feet, 26.feet)
             ) += {
                 AlignHatchIntakeCommand().start()
-                Elevator.set(Elevator.Position.LOW_ROCKET_CARGO_HATCH.length)
-                Intake.pivotState = Intake.PivotPosition.EXTENDED
+                Elevator.setPosition(Elevator.Position.LOW_ROCKET_CARGO_HATCH.length)
+                Intake.extended = true
             }
         }
 
         +sequential {
             +DelayCommand(1.second)
-            +InstantRunnableCommand { Intake.slidePosition = 11.inch }
+            +InstantRunnableCommand { SlideIntake.setPosition(11.inch) }
         }
     }
     +SetElevatorPositionCommand(0.inch)
@@ -43,7 +44,7 @@ fun RocketShipLeftAuto() = sequential {
                 Translation2d(0.feet, 20.feet),
                 Translation2d(7.feet, 27.feet)
         ) += {
-            Elevator.set(Elevator.Position.PORTAL_INTAKE.length)
+            Elevator.setPosition(Elevator.Position.PORTAL_INTAKE.length)
         }
     }
 }

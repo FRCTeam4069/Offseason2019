@@ -1,9 +1,9 @@
 package frc.team4069.robot.subsystems
 
 import com.ctre.phoenix.motorcontrol.ControlMode
-import com.ctre.phoenix.motorcontrol.DemandType
 import com.ctre.phoenix.motorcontrol.NeutralMode
 import com.ctre.phoenix.motorcontrol.can.TalonSRX
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.drive.OperatorDriveCommand
@@ -12,13 +12,14 @@ import frc.team4069.saturn.lib.mathematics.units.*
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
-import frc.team4069.saturn.lib.mathematics.units.nativeunits.STU
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import frc.team4069.saturn.lib.sensors.SaturnPigeon
 import frc.team4069.saturn.lib.subsystem.TankDriveSubsystem
+import io.github.oblarg.oblog.Loggable
+import io.github.oblarg.oblog.annotations.Log
 
-object Drivetrain : TankDriveSubsystem() {
+object Drivetrain : TankDriveSubsystem(), Loggable {
 
     private val leftSlave = SaturnSRX(RobotMap.Drivetrain.LEFT_SLAVE_SRX, Constants.DT_MODEL)
     private val rightSlave = SaturnSRX(RobotMap.Drivetrain.RIGHT_SLAVE_SRX, Constants.DT_MODEL)
@@ -28,6 +29,9 @@ object Drivetrain : TankDriveSubsystem() {
 
     val auxMotor = TalonSRX(RobotMap.Drivetrain.AUXILIARY_MAIN_SRX)
     val auxSlave = TalonSRX(RobotMap.Drivetrain.AUXILIARY_SLAVE_SRX)
+
+    private var currentState: State = State.Nothing
+    private var wantedState: State = State.Nothing
 
     override val gyro = SaturnPigeon(leftSlave.talon)
 
@@ -115,18 +119,56 @@ object Drivetrain : TankDriveSubsystem() {
         OperatorDriveCommand().start()
     }
 
+    override fun tankDrive(left: Double, right: Double) {
+        wantedState = State.OpenLoop(left, right)
+    }
+
+    override fun periodic() {
+        //TODO: Telemetry
+        when(val state = wantedState) {
+            is State.OpenLoop -> {
+                leftMotor.setDutyCycle(state.left)
+                rightMotor.setDutyCycle(state.right)
+
+                if(state.aux != null) {
+                    auxMotor.set(ControlMode.PercentOutput, state.aux!!) // state is an immutable copy, compiler not smart enough that I can remove !!
+                }
+            }
+            is State.AuxOnly -> {
+                auxMotor.set(ControlMode.PercentOutput, state.demand)
+            }
+            is State.PathFollowing -> {
+                leftMotor.setVelocity(state.leftVelocity, state.leftArbFF)
+                rightMotor.setVelocity(state.rightVelocity, state.rightArbFF)
+            }
+            is State.MotionMagic -> {
+                leftMotor.setPosition(state.leftSetpoint)
+                rightMotor.setPosition(state.rightSetpoint)
+            }
+            is State.Nothing -> {
+                leftMotor.setNeutral()
+                rightMotor.setNeutral()
+                auxMotor.neutralOutput() // One of these things is not like the others
+            }
+        }
+        if(currentState != wantedState) currentState = wantedState
+    }
+
     // Aux dt should only be used with %vbus.
     // Different gearing than normal dt, different motors
     // Not to be used in PID
     fun setAux(vbus: Double) {
-        auxMotor.set(ControlMode.PercentOutput, vbus)
+        if(wantedState is State.OpenLoop) {
+            (wantedState as State.OpenLoop).aux = vbus // Command locking the subsystem means this shouldn't fail
+        }else {
+            wantedState = State.AuxOnly(vbus)
+        }
     }
 
     fun set(left: LinearVelocity, right: LinearVelocity, leftAff: Double = 0.0,
             rightAff: Double = 0.0) {
 
-        leftMotor.setVelocity(left, leftAff)
-        rightMotor.setVelocity(right, rightAff)
+        wantedState = State.PathFollowing(left, right, leftAff, rightAff)
     }
 
     fun reduceLimits() {
@@ -144,7 +186,49 @@ object Drivetrain : TankDriveSubsystem() {
     }
 
     fun motionMagicRelative(length: Length) {
-        leftMotor.setPosition(leftPosition + length)
-        rightMotor.setPosition(rightPosition + length)
+        wantedState = State.MotionMagic(leftPosition + length, rightPosition + length)
+    }
+
+    private sealed class State : Loggable {
+        override fun configureLayoutType() = BuiltInLayouts.kGrid
+        override fun skipLayout() = true
+
+        data class OpenLoop(
+                @Log(name = "Left Output", rowIndex = 0, columnIndex = 0)
+                val left: Double,
+                @Log(name = "Right Output", rowIndex = 1, columnIndex = 0)
+                val right: Double,
+                @Log(name = "Back Output", rowIndex = 2, columnIndex = 0)
+                var aux: Double? = null) : State()
+
+        data class AuxOnly(
+                @Log(name = "Back Output", rowIndex = 0, columnIndex = 0)
+                val demand: Double) : State()
+
+        data class MotionMagic(val leftSetpoint: Length, val rightSetpoint: Length) : State() {
+            @Log(name = "Left Setpoint (m)", rowIndex = 0, columnIndex = 0)
+            private val _leftSetpoint = leftSetpoint.meter
+
+            @Log(name = "Right Setpoint (m)", rowIndex = 1, columnIndex = 0)
+            private val _rightSetpoint = rightSetpoint.meter
+        }
+
+        data class PathFollowing(
+                val leftVelocity: LinearVelocity,
+                val rightVelocity: LinearVelocity,
+                @Log(name = "Left Arbitrary Feedforward", rowIndex = 0, columnIndex = 1)
+                val leftArbFF: Double,
+                @Log(name = "Right Arbitrary Feedforward", rowIndex = 1, columnIndex = 1)
+                val rightArbFF: Double
+        ) : State() {
+            @Log(name = "Left Velocity (m/s)", rowIndex = 0, columnIndex = 0)
+            private val _leftVelocity = leftVelocity.value
+            @Log(name = "Right Velocity (m/s)", rowIndex = 1, columnIndex = 0)
+            private val _rightVelocity = rightVelocity.value
+        }
+
+        object Nothing : State() {
+            override fun toString() = "Nothing"
+        }
     }
 }

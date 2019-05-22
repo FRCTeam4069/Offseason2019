@@ -5,9 +5,8 @@ import frc.team4069.robot.commands.elevator.SetElevatorPositionCommand
 import frc.team4069.robot.commands.intake.OverdriveIntakeCommand
 import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.robot.subsystems.Elevator
-import frc.team4069.robot.subsystems.Intake
+import frc.team4069.robot.subsystems.intake.Intake
 import frc.team4069.saturn.lib.hid.*
-import frc.team4069.saturn.lib.mathematics.units.inch
 import frc.team4069.saturn.lib.util.deadband
 
 object OI {
@@ -42,10 +41,7 @@ object OI {
         button(kBumperRight) {
 //            change(DropIntakeCommand())
             changeOn {
-                when(Intake.pivotState) {
-                    Intake.PivotPosition.EXTENDED -> Intake.pivotState = Intake.PivotPosition.RETRACTED
-                    Intake.PivotPosition.RETRACTED -> Intake.pivotState = Intake.PivotPosition.EXTENDED
-                }
+                Intake.extended = !Intake.extended
             }
         }
 
@@ -68,12 +64,6 @@ object OI {
         button(kY) {
             changeOn {
                 Intake.lowerTarget += Intake.PIVOT_STEP
-            }
-        }
-
-        button(kStart) {
-            changeOn {
-                Elevator.position = 0.inch
             }
         }
 

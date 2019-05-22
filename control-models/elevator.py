@@ -32,7 +32,7 @@ class Elevator(frccnt.System):
         # Number of motors
         num_motors = 2.0
         # Elevator carriage mass in kg
-        m = 8.528 # TODO: Mass will have changed, re-weigh
+        m = 9.072
         # Radius of pulley in meters
         r = 0.0231
         # Gear ratio
@@ -57,8 +57,8 @@ class Elevator(frccnt.System):
 def main():
     dt = 0.01
     elevator = Elevator(dt)
-    # elevator.export_cpp_coeffs("Elevator", "subsystems/")
-    elevator.export_kotlin_coeffs("Elevator")
+    elevator.export_cpp_coeffs("Elevator", "subsystems/")
+    # elevator.export_kotlin_coeffs("Elevator")
 
     if "--save-plots" in sys.argv or "--noninteractive" not in sys.argv:
         try:

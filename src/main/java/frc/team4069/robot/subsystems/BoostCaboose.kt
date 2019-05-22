@@ -2,6 +2,7 @@ package frc.team4069.robot.subsystems
 
 import com.revrobotics.CANSparkMaxLowLevel
 import edu.wpi.first.wpilibj.DoubleSolenoid
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.climber.DriveClimberCommand
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
@@ -10,6 +11,8 @@ import frc.team4069.saturn.lib.mathematics.units.nativeunits.NativeUnitLengthMod
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.NativeUnitSensorModel
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STU
 import frc.team4069.saturn.lib.motor.rev.SaturnMAX
+import io.github.oblarg.oblog.Loggable
+import io.github.oblarg.oblog.annotations.Log
 
 object BoostCaboose : SaturnSubsystem() {
     val model = NativeUnitLengthModel(20.49.STU, (2.9 / 2.0).inch)
@@ -17,6 +20,8 @@ object BoostCaboose : SaturnSubsystem() {
     private val liftSlave1 = SaturnMAX(RobotMap.Climber.SLAVE_MAX, CANSparkMaxLowLevel.MotorType.kBrushless, model = NativeUnitSensorModel(1.STU))
 
     private val solenoid = DoubleSolenoid(RobotMap.Climber.SOLENOID_FWD, RobotMap.Climber.SOLENOID_BCK)
+
+    private val periodicIO = PeriodicIO()
 
     init {
         defaultCommand = DriveClimberCommand()
@@ -28,11 +33,20 @@ object BoostCaboose : SaturnSubsystem() {
     }
 
     fun set(percent: Double) {
-        liftMaster.setDutyCycle(percent)
+        periodicIO.demand = percent
     }
 
     fun set(dir: DoubleSolenoid.Value) {
+        periodicIO.pistonState = dir == DoubleSolenoid.Value.kForward
+
         solenoid.set(dir)
+    }
+
+    override fun periodic() {
+        periodicIO.voltage = liftMaster.voltageOutput
+        periodicIO.current = liftMaster.canSparkMax.outputCurrent
+
+        liftMaster.setDutyCycle(periodicIO.demand)
     }
 
     fun toggle() {
@@ -40,6 +54,22 @@ object BoostCaboose : SaturnSubsystem() {
             DoubleSolenoid.Value.kOff, DoubleSolenoid.Value.kReverse -> set(DoubleSolenoid.Value.kForward)
             else -> set(DoubleSolenoid.Value.kReverse)
         }
+        periodicIO.pistonState = !periodicIO.pistonState
+    }
+
+    private class PeriodicIO : Loggable {
+        override fun configureLayoutType() = BuiltInLayouts.kGrid
+        override fun skipLayout() = true
+
+        @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
+        var voltage = 0.0
+
+        @Log(name = "Current", rowIndex = 1, columnIndex = 0)
+        var current = 0.0
+
+        // Outputs
+        var demand = 0.0
+        var pistonState = false
     }
 
     override fun teleopReset() {

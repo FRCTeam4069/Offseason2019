@@ -5,7 +5,8 @@ import frc.team4069.robot.commands.drive.DriveStraightToTape
 import frc.team4069.robot.commands.drive.FollowPathCommand
 import frc.team4069.robot.commands.elevator.SetElevatorPositionCommand
 import frc.team4069.robot.subsystems.Elevator
-import frc.team4069.robot.subsystems.Intake
+import frc.team4069.robot.subsystems.intake.Intake
+import frc.team4069.robot.subsystems.intake.SlideIntake
 import frc.team4069.saturn.lib.commands.DelayCommand
 import frc.team4069.saturn.lib.commands.InstantRunnableCommand
 import frc.team4069.saturn.lib.commands.parallel
@@ -17,11 +18,11 @@ import frc.team4069.saturn.lib.mathematics.units.second
 fun CargoShipFrontAuto() = sequential {
     +FollowPathCommand(Trajectories.frontCargoShip, zeroPose = true)
     +parallel {
-        +InstantRunnableCommand { Intake.slidePosition = 11.inch }
+        +InstantRunnableCommand { SlideIntake.setPosition(11.inch) }
         +SetElevatorPositionCommand(6.inch)
     }
     +DelayCommand(0.75.second)
-    +InstantRunnableCommand { Intake.pivotState = Intake.PivotPosition.EXTENDED }
+    +InstantRunnableCommand { Intake.extended = true }
     +DelayCommand(0.5.second)
     +SetElevatorPositionCommand(Elevator.Position.CARGO_SHIP_HATCH)
     +DriveStraightToTape()

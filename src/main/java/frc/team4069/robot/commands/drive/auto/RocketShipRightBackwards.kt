@@ -5,7 +5,8 @@ import frc.team4069.robot.commands.drive.FollowPathCommand
 import frc.team4069.robot.commands.elevator.SetElevatorPositionCommand
 import frc.team4069.robot.commands.intake.AlignHatchIntakeCommand
 import frc.team4069.robot.subsystems.Elevator
-import frc.team4069.robot.subsystems.Intake
+import frc.team4069.robot.subsystems.intake.Intake
+import frc.team4069.robot.subsystems.intake.SlideIntake
 import frc.team4069.saturn.lib.commands.DelayCommand
 import frc.team4069.saturn.lib.commands.InstantRunnableCommand
 import frc.team4069.saturn.lib.commands.parallel
@@ -18,13 +19,13 @@ fun RocketShipRightBackwardsAuto() = sequential {
         +FollowPathCommand(Trajectories.backRightRocket, zeroPose = true)
         +sequential {
             +DelayCommand(2.second)
-            +InstantRunnableCommand { Intake.slidePosition = 11.inch }
+            +InstantRunnableCommand { SlideIntake.setPosition(11.inch) }
         }
     }
     +parallel {
         +parallel {
             +SetElevatorPositionCommand(Elevator.Position.LOW_ROCKET_CARGO_HATCH, instant = true)
-            +InstantRunnableCommand { Intake.pivotState = Intake.PivotPosition.EXTENDED }
+            +InstantRunnableCommand { Intake.extended = true }
             +InstantRunnableCommand { AlignHatchIntakeCommand().start() }
         }
         +FollowPathCommand(Trajectories.backRocketToTarget)

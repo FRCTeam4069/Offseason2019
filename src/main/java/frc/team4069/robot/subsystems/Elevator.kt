@@ -1,26 +1,28 @@
 package frc.team4069.robot.subsystems
 
-import com.ctre.phoenix.motorcontrol.ControlMode
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.elevator.OperatorElevatorCommand
-import frc.team4069.robot.control.elevator.ElevatorController
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import frc.team4069.saturn.lib.mathematics.units.*
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.hertz
+import frc.team4069.saturn.lib.mathematics.units.derivedunits.inchesPerSecond
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
-import frc.team4069.saturn.lib.util.launchFrequency
-import kotlinx.coroutines.GlobalScope
+import io.github.oblarg.oblog.Loggable
+import io.github.oblarg.oblog.annotations.Log
 
-object Elevator : SaturnSubsystem() {
+object Elevator : SaturnSubsystem(), Loggable {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
     private val slaveTalon = SaturnSRX(RobotMap.Elevator.SLAVE_SRX, Constants.ELEVATOR_MODEL)
 
+    private val telemetry = SubsystemTelemetry()
+
+    @Log(name = "Current state", rowIndex = 0, columnIndex = 3)
+    private var currentState: State = State.Nothing
+    private var wantedState: State = State.Nothing
 
     val MAX_HEIGHT = 31.inch
 
@@ -51,40 +53,77 @@ object Elevator : SaturnSubsystem() {
             encoder.encoderPhase = true
         }
 
-        GlobalScope.launchFrequency(50.hertz) {
-        }
-
         slaveTalon.follow(masterTalon)
     }
 
     override fun lateInit() {
-        position = 0.inch
+        masterTalon.encoder.resetPosition(0.inch)
     }
 
     override fun teleopReset() {
         OperatorElevatorCommand().start()
     }
 
-    fun set(output: Double) {
-        masterTalon.setDutyCycle(output)
+    fun setDutyCycle(output: Double) {
+        wantedState = State.OpenLoop(output)
     }
 
-    fun set(position: Length) {
-        masterTalon.setPosition(position)
+    fun setPosition(position: Length) {
+        wantedState = State.MotionMagic(position)
     }
 
-    var position: Length
+    val position: Length
         get() = masterTalon.encoder.position
-        set(value) {
-            masterTalon.encoder.resetPosition(value)
-        }
 
     val velocity: LinearVelocity
         get() = masterTalon.encoder.velocity
 
 
     override fun periodic() {
-        SmartDashboard.putNumber("Elevator Position", position.inch)
+        telemetry.voltage = masterTalon.voltageOutput
+        telemetry.current = masterTalon.talon.outputCurrent
+        telemetry.position = position.inch
+        telemetry.velocity = velocity.inchesPerSecond
+
+        when(val state = wantedState) {
+            is State.OpenLoop -> {
+                masterTalon.setDutyCycle(state.dutyCycle)
+            }
+            is State.MotionMagic -> {
+                masterTalon.setPosition(state.setpoint)
+            }
+        }
+        if(currentState != wantedState) currentState = wantedState
+    }
+
+    private class SubsystemTelemetry : Loggable {
+        @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
+        var voltage = 0.0
+
+        @Log(name = "Current", rowIndex = 1, columnIndex = 0)
+        var current = 0.0
+
+        @Log(name = "Position (in.)", rowIndex = 0, columnIndex = 1)
+        var position = 0.0
+
+        @Log(name = "Velocity (in/s)", rowIndex = 1, columnIndex = 1)
+        var velocity = 0.0
+    }
+
+    private sealed class State {
+        data class MotionMagic(val setpoint: Length) : State(), Loggable {
+            @Log(name = "Setpoint (in)", rowIndex = 0, columnIndex = 0)
+            private val _setpoint = setpoint.inch
+        }
+
+        data class OpenLoop(
+                @Log(name = "Duty cycle", rowIndex = 0, columnIndex = 0)
+                val dutyCycle: Double
+        ) : State(), Loggable
+
+        object Nothing : State(), Loggable {
+            override fun toString() = "Nothing"
+        }
     }
 
     /**

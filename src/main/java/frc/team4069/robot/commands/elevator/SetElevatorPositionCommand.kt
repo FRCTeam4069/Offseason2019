@@ -18,6 +18,6 @@ class SetElevatorPositionCommand(private val position: Length, instant: Boolean 
     }
 
     override suspend fun initialize() {
-        Elevator.set(position)
+        Elevator.setPosition(position)
     }
 }
