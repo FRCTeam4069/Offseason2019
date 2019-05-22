@@ -24,7 +24,7 @@ object Elevator : SaturnSubsystem() {
 
     val MAX_HEIGHT = 31.inch
 
-    val controller = ElevatorController()
+//    val controller = ElevatorController()
 
     init {
         defaultCommand = OperatorElevatorCommand()
