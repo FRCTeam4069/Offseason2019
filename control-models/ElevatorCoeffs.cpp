@@ -35,8 +35,8 @@ frc::StateSpaceControllerCoeffs<2, 1, 1> MakeElevatorControllerCoeffs() {
 
 frc::StateSpaceObserverCoeffs<2, 1, 1> MakeElevatorObserverCoeffs() {
   Eigen::Matrix<double, 2, 1> K;
-  K(0, 0) = 0.9999757217645118;
-  K(1, 0) = 0.6994463408695476;
+  K(0, 0) = 0.999975001250838;
+  K(1, 0) = 8.893621178231982e-07;
   return frc::StateSpaceObserverCoeffs<2, 1, 1>(K);
 }
 

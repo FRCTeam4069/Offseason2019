@@ -2,21 +2,15 @@ package frc.team4069.robot
 
 import edu.wpi.first.wpilibj.Compressor
 import edu.wpi.first.wpilibj.RobotBase
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
-import frc.team4069.robot.commands.drive.auto.RocketShipLeftAuto
-import frc.team4069.robot.commands.drive.auto.RocketShipRightAuto
-import frc.team4069.robot.commands.drive.auto.RocketShipRightBackwardsAuto
-import frc.team4069.robot.commands.drive.auto.TeleoperatedSandstorm
 import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.subsystems.Elevator
 import frc.team4069.robot.subsystems.intake.Intake
+import frc.team4069.robot.subsystems.intake.SlideIntake
 import frc.team4069.robot.vision.VisionSystem
 import frc.team4069.saturn.lib.SaturnRobot
-import frc.team4069.saturn.lib.commands.SaturnCommandGroup
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
-import frc.team4069.saturn.lib.shuffleboard.chooser
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.Logger
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -26,7 +20,6 @@ object Robot : SaturnRobot() {
 
     private val compressor = Compressor()
 
-    private lateinit var autoChooser: SendableChooser<SaturnCommandGroup>
 
     val loggableSystems = arrayListOf<Loggable>()
 
@@ -36,6 +29,7 @@ object Robot : SaturnRobot() {
         +Drivetrain
         +BoostCaboose
         +Intake
+        +SlideIntake
         +Elevator
 
         // Controls registering
@@ -43,19 +37,23 @@ object Robot : SaturnRobot() {
         +OI.operatorController
 
         // Helper initialization
-        Trajectories
+//        Trajectories
         VisionSystem
 
         SmartDashboard.putBoolean("Voltage Nominal", true)
 
-        autoChooser = chooser("Autonomous Selection") {
-            "Rocket Right" += RocketShipRightAuto()
-            "Rocket Left" += RocketShipLeftAuto()
-            "Rocket Right (Backwards)" += RocketShipRightBackwardsAuto()
-            "Teleoperated Sandstorm" += TeleoperatedSandstorm()
-        }
+//        autoChooser = chooser("Autonomous Selection") {
+//            "Rocket Right" += RocketShipRightAuto()
+//            "Rocket Left" += RocketShipLeftAuto()
+//            "Rocket Right (Backwards)" += RocketShipRightBackwardsAuto()
+//            "Teleoperated Sandstorm" += TeleoperatedSandstorm()
+//        }
 
         Logger.configureLoggingAndConfig(this, false)
+    }
+
+    override suspend fun periodic() {
+        Logger.updateEntries()
     }
 
     /**
@@ -69,7 +67,7 @@ object Robot : SaturnRobot() {
     }
 
     override fun autonomousInit() {
-        autoChooser.selected.start()
+//        autoChooser.selected.srt()
     }
 
     operator fun SaturnSubsystem.unaryPlus() {

@@ -232,13 +232,13 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
         @Log(name = "Right Position (m)", width = 2, height = 1, rowIndex = 2, columnIndex = 2)
         var rightPosition: Double = 0.0
 
-        @Log(name = "Left Velocity (m/s)", width = 2, height = 1, rowIndex = 3, columnIndex = 0)
+        @Log(name = "Left Velocity (m s^-1)", width = 2, height = 1, rowIndex = 3, columnIndex = 0)
         var leftVelocity: Double = 0.0
 
-        @Log(name = "Right Velocity (m/s)", width = 2, height = 1, rowIndex = 3, columnIndex = 2)
+        @Log(name = "Right Velocity (m ^-1)", width = 2, height = 1, rowIndex = 3, columnIndex = 2)
         var rightVelocity: Double = 0.0
 
-        @Log(name = "Gyro Angle", rowIndex = 4, columnIndex = 0)
+        @Log(name = "Gyro Angle", rowIndex = 2, columnIndex = 4)
         var gyroAngle: Double = 0.0
 
         // Outputs

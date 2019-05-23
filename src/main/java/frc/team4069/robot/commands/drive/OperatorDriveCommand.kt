@@ -16,12 +16,10 @@ class OperatorDriveCommand : SaturnCommand(Drivetrain) {
             Drivetrain.curvatureDrive(speed, turn, speed == 0.0)
             // AUX is one gearbox, so can't apply differential algorithms
             if (OI.usingAux) {
-                Drivetrain.setAux(speed)
-            }else {
-                Drivetrain.setAux(0.0)
+                Drivetrain.setAux(speed, false)
             }
         }else {
-            Drivetrain.setAux(speed)
+            Drivetrain.setAux(speed, true)
         }
     }
 }

@@ -1,8 +1,11 @@
 package frc.team4069.robot.subsystems
 
+import edu.wpi.first.wpilibj.Notifier
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.elevator.OperatorElevatorCommand
+import frc.team4069.robot.control.elevator.ElevatorController
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import frc.team4069.saturn.lib.mathematics.units.*
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
@@ -13,6 +16,7 @@ import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
+import koma.mat
 
 object Elevator : SaturnSubsystem(), Loggable {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
@@ -20,13 +24,13 @@ object Elevator : SaturnSubsystem(), Loggable {
 
     private val periodicIO = PeriodicIO()
 
-    @Log(name = "Current state", rowIndex = 0, columnIndex = 3)
+    @Log.ToString(name = "Current state", rowIndex = 0, columnIndex = 3)
     private var currentState = State.Nothing
     private var wantedState = State.Nothing
 
     val MAX_HEIGHT = 31.inch
 
-//    val controller = ElevatorController()
+    val controller = ElevatorController()
 
     init {
         defaultCommand = OperatorElevatorCommand()
@@ -54,6 +58,15 @@ object Elevator : SaturnSubsystem(), Loggable {
         }
 
         slaveTalon.follow(masterTalon)
+
+        Notifier {
+            controller.measuredPosition = position
+            controller.update()
+
+            if(currentState == State.ClosedLoop) {
+                masterTalon.setVoltage(controller.voltage)
+            }
+        }.startPeriodic(0.01)
     }
 
     override fun lateInit() {
@@ -71,7 +84,8 @@ object Elevator : SaturnSubsystem(), Loggable {
 
     fun setPosition(position: Length) {
         periodicIO.demand = position.meter
-        wantedState = State.MotionMagic
+//        wantedState = State.MotionMagic
+        wantedState = State.ClosedLoop
     }
 
     val position: Length
@@ -86,8 +100,10 @@ object Elevator : SaturnSubsystem(), Loggable {
         periodicIO.current = masterTalon.talon.outputCurrent
         periodicIO.position = position.inch
         periodicIO.velocity = velocity.inchesPerSecond
+        periodicIO.kfPosition = controller.position.inch
+        periodicIO.kfVelocity = controller.velocity.inchesPerSecond
 
-        when(wantedState) {
+        when (wantedState) {
             State.OpenLoop -> {
                 masterTalon.setDutyCycle(periodicIO.demand)
             }
@@ -97,22 +113,35 @@ object Elevator : SaturnSubsystem(), Loggable {
             State.Nothing -> {
                 masterTalon.setNeutral()
             }
+            State.ClosedLoop -> {
+                controller.reference = mat[periodicIO.demand, 0.0].T
+            }
         }
-        if(currentState != wantedState) currentState = wantedState
+
+        if (currentState != wantedState) currentState = wantedState
     }
 
     private class PeriodicIO : Loggable {
+        override fun configureLayoutType() = BuiltInLayouts.kGrid
+        override fun skipLayout() = true
+
         @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
         var voltage: Double = 0.0
 
-        @Log(name = "Current", rowIndex = 1, columnIndex = 0)
+        @Log(name = "Current", width = 2, height = 1, rowIndex = 1, columnIndex = 0)
         var current: Double = 0.0
 
-        @Log(name = "Position (in.)", rowIndex = 0, columnIndex = 1)
+        @Log(name = "Position (in)", width = 2, height = 1, rowIndex = 2, columnIndex = 0)
         var position: Double = 0.0
 
-        @Log(name = "Velocity (in/s)", rowIndex = 1, columnIndex = 1)
+        @Log(name = "KF Estimated Position (in)", width = 2, height = 1, rowIndex = 2, columnIndex = 2)
+        var kfPosition: Double = 0.0
+
+        @Log(name = "Velocity (in s^-1)", width = 2, height = 1, rowIndex = 3, columnIndex = 0)
         var velocity: Double = 0.0
+
+        @Log(name = "KF Estimated Velocity (in s^-1)", width = 2, height = 1, rowIndex = 3, columnIndex = 2)
+        var kfVelocity: Double = 0.0
 
         // Outputs
         var demand: Double = 0.0
@@ -121,6 +150,7 @@ object Elevator : SaturnSubsystem(), Loggable {
     private enum class State {
         OpenLoop,
         MotionMagic,
+        ClosedLoop,
         Nothing
     }
 

@@ -49,7 +49,7 @@ class Elevator(frccnt.System):
 
         # 0.02 corresponds to some confidence in x evolution in our state.
         # 0.9 corresponds with low confidence in v evolution
-        kq = [0.02, 0.9]
+        kq = [0.02, 0.001]
         kr = [0.0001]
         self.design_kalman_filter(kq, kr)
 

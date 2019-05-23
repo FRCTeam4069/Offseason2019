@@ -107,16 +107,16 @@ object Intake : SaturnSubsystem(), Loggable {
         @Log.VoltageView(name = "Intake Voltage", rowIndex = 0, columnIndex = 0)
         var intakeVoltage: Double = 0.0
 
-        @Log(name = "Intake Current", rowIndex = 1, columnIndex = 0)
+        @Log(name = "Intake Current", width = 2, height = 1, rowIndex = 1, columnIndex = 0)
         var intakeCurrent: Double = 0.0
 
-        @Log.VoltageView(name = "Pivot Voltage", rowIndex = 0, columnIndex = 1)
+        @Log.VoltageView(name = "Pivot Voltage", rowIndex = 0, columnIndex = 2)
         var pivotVoltage: Double = 0.0
 
-        @Log(name = "Pivot Current", rowIndex = 1, columnIndex = 1)
+        @Log(name = "Pivot Current", width = 2, height = 1, rowIndex = 1, columnIndex = 2)
         var pivotCurrent: Double = 0.0
 
-        @Log(name = "Pivot Angle", rowIndex = 2, columnIndex = 1)
+        @Log(name = "Pivot Angle", width = 2, height = 1, rowIndex = 2, columnIndex = 1)
         var pivotAngle: Double = 0.0
 
         // Outputs

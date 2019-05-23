@@ -65,6 +65,9 @@ object SlideIntake : SaturnSubsystem(), Loggable {
             State.MotionMagic -> {
                 slide.setPosition(periodicIO.demand.meter)
             }
+            State.Nothing -> {
+                slide.setNeutral()
+            }
         }
         if(currentState != wantedState) currentState = wantedState
     }
@@ -83,16 +86,16 @@ object SlideIntake : SaturnSubsystem(), Loggable {
         override fun configureLayoutType() = BuiltInLayouts.kGrid
         override fun skipLayout() = true
 
-        @Log.VoltageView(name = "Voltage", rowIndex = 0, columnIndex = 0)
+        @Log.VoltageView(name = "Voltage", width = 2, height = 1, rowIndex = 0, columnIndex = 0)
         var voltage = 0.0
 
-        @Log(name = "Current", rowIndex = 1, columnIndex = 0)
+        @Log(name = "Current", width = 2, height = 1, rowIndex = 1, columnIndex = 0)
         var current = 0.0
 
-        @Log(name = "Position (in)", rowIndex = 0, columnIndex = 1)
+        @Log(name = "Position (in)", rowIndex = 0, columnIndex = 2)
         var position = 0.0
 
-        @Log(name = "Velocity (in/s)", rowIndex = 1, columnIndex = 1)
+        @Log(name = "Velocity (in s^-1)", rowIndex = 1, columnIndex = 2)
         var velocity = 0.0
 
         // Outputs
