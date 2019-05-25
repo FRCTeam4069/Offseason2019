@@ -37,10 +37,10 @@ dependencies {
     compile(kotlin("stdlib"))
     compile("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.1.0")
     
-//    compile("com.github.FRCTeam4069:SaturnLibrary:87500c30fe")
-    compile("frc.team4069:SaturnLibrary:2019.05.22")
+//    compile("com.github.FRCTeam4069:SaturnLibrary:keigen-SNAPSHOT")
+    compile("frc.team4069:SaturnLibrary:2019.05.25")
     
-     compile("com.github.Oblarg", "Oblog", "2.9.1")
+     compile("com.github.Oblarg", "Oblog", "2.10.0")
     
     // WPILib
     wpi.deps.wpilib().forEach { compile(it) }

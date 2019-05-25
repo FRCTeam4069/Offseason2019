@@ -49,6 +49,7 @@ object Robot : SaturnRobot() {
 //            "Teleoperated Sandstorm" += TeleoperatedSandstorm()
 //        }
 
+        Logger.setCycleWarningsEnabled(false) // Kotlin `object`s have cyclic references in bytecode that make oblog unhappy
         Logger.configureLoggingAndConfig(this, false)
     }
 
