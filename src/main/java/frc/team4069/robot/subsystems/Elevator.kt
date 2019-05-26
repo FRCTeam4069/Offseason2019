@@ -114,7 +114,7 @@ object Elevator : SaturnSubsystem(), Loggable {
                 masterTalon.setNeutral()
             }
             State.ClosedLoop -> {
-                controller.reference = vec[`2`, periodicIO.demand, 0.0]
+                controller.reference = vec(`2`).fill(periodicIO.demand, 0.0)
             }
         }
 
