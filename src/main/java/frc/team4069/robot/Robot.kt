@@ -3,6 +3,7 @@ package frc.team4069.robot
 import edu.wpi.first.wpilibj.Compressor
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
+import frc.team4069.robot.control.elevator.ElevatorCoeffs
 import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.subsystems.Elevator

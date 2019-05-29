@@ -37,8 +37,8 @@ dependencies {
     compile(kotlin("stdlib"))
     compile("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.1.0")
     
-//    compile("com.github.FRCTeam4069:SaturnLibrary:keigen-SNAPSHOT")
-    compile("frc.team4069:SaturnLibrary:2019.05.26")
+    compile("com.github.FRCTeam4069:SaturnLibrary:1c9b3bcf5c")
+//    compile("frc.team4069:SaturnLibrary:2019.05.28")
     
      compile("com.github.Oblarg", "Oblog", "2.10.0")
     
