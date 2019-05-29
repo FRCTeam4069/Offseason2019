@@ -16,7 +16,7 @@ import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
-import koma.mat
+import frc.team4069.keigen.*
 
 object Elevator : SaturnSubsystem(), Loggable {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
@@ -59,14 +59,7 @@ object Elevator : SaturnSubsystem(), Loggable {
 
         slaveTalon.follow(masterTalon)
 
-        Notifier {
-            controller.measuredPosition = position
-            controller.update()
-
-            if(currentState == State.ClosedLoop) {
-                masterTalon.setVoltage(controller.voltage)
-            }
-        }.startPeriodic(0.01)
+        Notifier(this::update).startPeriodic(1.0/100.0)
     }
 
     override fun lateInit() {
@@ -95,13 +88,20 @@ object Elevator : SaturnSubsystem(), Loggable {
         get() = masterTalon.encoder.velocity
 
 
-    override fun periodic() {
+    private fun update() {
         periodicIO.voltage = masterTalon.voltageOutput
         periodicIO.current = masterTalon.talon.outputCurrent
         periodicIO.position = position.inch
         periodicIO.velocity = velocity.inchesPerSecond
         periodicIO.kfPosition = controller.position.inch
         periodicIO.kfVelocity = controller.velocity.inchesPerSecond
+
+        controller.measuredPosition = position
+        controller.update()
+
+        if (wantedState == State.ClosedLoop) {
+            masterTalon.setVoltage(controller.voltage)
+        }
 
         when (wantedState) {
             State.OpenLoop -> {
@@ -114,11 +114,15 @@ object Elevator : SaturnSubsystem(), Loggable {
                 masterTalon.setNeutral()
             }
             State.ClosedLoop -> {
-                controller.reference = mat[periodicIO.demand, 0.0].T
+                controller.reference = vec(`2`).fill(periodicIO.demand, 0.0)
             }
         }
 
         if (currentState != wantedState) currentState = wantedState
+    }
+
+    override fun periodic() {
+
     }
 
     private class PeriodicIO : Loggable {

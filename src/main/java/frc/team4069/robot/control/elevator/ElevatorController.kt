@@ -1,25 +1,22 @@
 package frc.team4069.robot.control.elevator
 
+import frc.team4069.keigen.*
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpaceController
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpaceObserver
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpacePlant
 import frc.team4069.saturn.lib.mathematics.units.Length
 import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
 import frc.team4069.saturn.lib.mathematics.units.meter
-import koma.extensions.get
-import koma.extensions.set
-import koma.mat
-import koma.zeros
 
 class ElevatorController {
     private val plant = StateSpacePlant(ElevatorCoeffs.plantCoeffs)
     private val controller = StateSpaceController(ElevatorCoeffs.controllerCoeffs, plant)
     private val observer = StateSpaceObserver(ElevatorCoeffs.observerCoeffs, plant)
 
-    var u = mat[0.0]
+    var u = zeros(`1`)
 
-    var reference = zeros(2, 1)
-    var y = zeros(1, 1)
+    var reference = zeros(`2`)
+    var y = zeros(`1`)
 
     val voltage get() = u[0, 0]
     val position get() = observer.xHat[0, 0].meter
