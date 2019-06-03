@@ -2,6 +2,8 @@ package frc.team4069.robot
 
 import edu.wpi.first.wpilibj.Compressor
 import edu.wpi.first.wpilibj.RobotBase
+import edu.wpi.first.wpilibj.RobotController
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import frc.team4069.robot.control.elevator.ElevatorCoeffs
 import frc.team4069.robot.subsystems.BoostCaboose
@@ -9,18 +11,21 @@ import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.subsystems.Elevator
 import frc.team4069.robot.subsystems.intake.Intake
 import frc.team4069.robot.subsystems.intake.SlideIntake
+import frc.team4069.robot.util.DataLogger
+import frc.team4069.robot.util.PressureSensor
 import frc.team4069.robot.vision.VisionSystem
 import frc.team4069.saturn.lib.SaturnRobot
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.Logger
+import io.github.oblarg.oblog.annotations.Log
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 
 object Robot : SaturnRobot() {
     private var brownedOut = false
 
     private val compressor = Compressor()
-
+    val pressureSensor = PressureSensor(0)
 
     val loggableSystems = arrayListOf<Loggable>()
 
@@ -39,16 +44,9 @@ object Robot : SaturnRobot() {
 
         // Helper initialization
 //        Trajectories
-        VisionSystem
-
-        SmartDashboard.putBoolean("Voltage Nominal", true)
-
-//        autoChooser = chooser("Autonomous Selection") {
-//            "Rocket Right" += RocketShipRightAuto()
-//            "Rocket Left" += RocketShipLeftAuto()
-//            "Rocket Right (Backwards)" += RocketShipRightBackwardsAuto()
-//            "Teleoperated Sandstorm" += TeleoperatedSandstorm()
-//        }
+//        VisionSystem
+//
+//        SmartDashboard.putBoolean("Voltage Nominal", true)
 
         Logger.setCycleWarningsEnabled(false) // Kotlin `object`s have cyclic references in bytecode that make oblog unhappy
         Logger.configureLoggingAndConfig(this, false)
@@ -56,7 +54,14 @@ object Robot : SaturnRobot() {
 
     override suspend fun periodic() {
         Logger.updateEntries()
+
+        if (pressureSensor.pressure < 70.0) {
+            compressor.start()
+        } else if (pressureSensor.pressure >= 90.0) {
+            compressor.stop()
+        }
     }
+
 
     /**
      * Function called when brownout watchdog has triggered. Robot is running at dangerously low voltage,
@@ -75,7 +80,7 @@ object Robot : SaturnRobot() {
     operator fun SaturnSubsystem.unaryPlus() {
         addToSubsystemHandler(this)
 
-        if(this is Loggable) {
+        if (this is Loggable) {
             loggableSystems.add(this)
         }
     }

@@ -16,7 +16,8 @@ import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
-import frc.team4069.keigen.*
+import frc.team4069.saturn.lib.mathematics.onedim.control.TrapezoidalProfile
+import kotlin.math.abs
 
 object Elevator : SaturnSubsystem(), Loggable {
     private val masterTalon = SaturnSRX(RobotMap.Elevator.MAIN_SRX, Constants.ELEVATOR_MODEL)
@@ -75,9 +76,15 @@ object Elevator : SaturnSubsystem(), Loggable {
         wantedState = State.OpenLoop
     }
 
-    fun setPosition(position: Length) {
-        periodicIO.demand = position.meter
-//        wantedState = State.MotionMagic
+    fun setPosition(targetPosition: Length) {
+        periodicIO.demand = targetPosition.meter
+        controller.motionProfile = if(targetPosition < position && abs(targetPosition.inch - position.inch) > 5.0) {
+            TrapezoidalProfile(targetPosition, 15.inch.velocity, 30.inch.acceleration, initialX = position) // Dont go as fast going down cause gravity
+        }else {
+            TrapezoidalProfile(targetPosition, 30.inch.velocity, 45.inch.acceleration,
+                initialX = position)
+        }
+
         wantedState = State.ClosedLoop
     }
 
@@ -97,32 +104,30 @@ object Elevator : SaturnSubsystem(), Loggable {
         periodicIO.kfVelocity = controller.velocity.inchesPerSecond
 
         controller.measuredPosition = position
+        controller.measuredVelocity = velocity
         controller.update()
-
-        if (wantedState == State.ClosedLoop) {
-            masterTalon.setVoltage(controller.voltage)
-        }
 
         when (wantedState) {
             State.OpenLoop -> {
+                controller.motionProfile = null
                 masterTalon.setDutyCycle(periodicIO.demand)
             }
             State.MotionMagic -> {
+                controller.motionProfile = null
                 masterTalon.setPosition(periodicIO.demand.meter)
             }
             State.Nothing -> {
+                controller.motionProfile = null
                 masterTalon.setNeutral()
             }
             State.ClosedLoop -> {
-                controller.reference = vec(`2`).fill(periodicIO.demand, 0.0)
+                masterTalon.setVoltage(controller.voltage)
+//                controller.reference = vec(`2`).fill(periodicIO.demand, 0.0)
             }
+
         }
 
         if (currentState != wantedState) currentState = wantedState
-    }
-
-    override fun periodic() {
-
     }
 
     private class PeriodicIO : Loggable {

@@ -7,20 +7,16 @@ import frc.team4069.saturn.lib.mathematics.statespace.coeffs.StateSpacePlantCoef
 
 object ElevatorCoeffs {
     val plantCoeffs =
-            StateSpacePlantCoeffs(`2`, `1`, `1`,
+            StateSpacePlantCoeffs(`2`, `1`, `2`,
                     A = mat(`2`, `2`).fill(
-                            1.0, 0.0038123917094548044,
-                            0.0, 0.09251846318419062
+                            1.0, 0.000672170658888835,
+                            0.0, 3.458816828536931e-07
                     ),
                     B = vec(`2`).fill(
-                            0.000587130443210727, 0.08610920599650167
+                            0.0003540400308538644, 0.037955230038088185
                     ),
-                    C = mat(`1`, `2`).fill(
-                            1.0, 0.0
-                    ),
-                    D = mat(`1`, `1`).fill(
-                            0.0
-                    )
+                    C = eye(`2`),
+                    D = zeros(`2`, `1`)
             )
     val controllerCoeffs =
             StateSpaceControllerCoeffs(
@@ -35,8 +31,9 @@ object ElevatorCoeffs {
             )
     val observerCoeffs =
             StateSpaceObserverCoeffs(
-                    K = vec(`2`).fill(
-                            0.9999757217645118, 0.6994463408695476
+                    K = mat(`2`, `2`).fill(
+                            0.3279215611246275, 6.247005370670148e-14,
+                            6.247005370671573e-18, 0.9996001599360256
                     )
             )
 }

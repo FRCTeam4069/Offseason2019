@@ -10,7 +10,7 @@ class DriveClimberCommand : SaturnCommand(BoostCaboose) {
     }
 
     override suspend fun execute() {
-        println(OI.climberSpeed) // remove this and it breaks, no touchy
+//        println(OI.climberSpeed) // remove this and it breaks, no touchy
         BoostCaboose.set(OI.climberSpeed)
     }
 }

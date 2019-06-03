@@ -38,7 +38,11 @@ class Elevator(frccnt.System):
         # Gear ratio
         G = 40.0
 
-        return frccnt.models.elevator(frccnt.models.MOTOR_775PRO, num_motors, m, r, G)
+        model = frccnt.models.elevator(frccnt.models.MOTOR_775PRO, num_motors, m, r, G)
+        model.C = np.array([[1, 0], [0, 1]])
+        model.D = np.array([[0], [0]])
+        return model
+
 
     def design_controller_observer(self):
         # Desired max deviation from position and velocity respectively
@@ -49,8 +53,8 @@ class Elevator(frccnt.System):
 
         # 0.02 corresponds to some confidence in x evolution in our state.
         # 0.001 corresponds with low confidence in v evolution
-        kq = [0.02, 0.001]
-        kr = [0.0001]
+        kq = [0.02, 0.01]
+        kr = [0.0001, 0.001]
         self.design_kalman_filter(kq, kr)
 
 
