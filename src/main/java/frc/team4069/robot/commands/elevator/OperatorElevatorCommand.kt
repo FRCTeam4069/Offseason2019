@@ -8,7 +8,7 @@ class OperatorElevatorCommand : SaturnCommand(Elevator) {
 
     var set = false
 
-    override suspend fun execute() {
+    override fun execute() {
         val spd = OI.elevatorSpeed // Deadbanded in OI
 
         if(spd != 0.0) {

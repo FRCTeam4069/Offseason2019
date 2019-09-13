@@ -6,11 +6,9 @@ import frc.team4069.saturn.lib.mathematics.onedim.control.TrapezoidalProfile
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpaceController
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpaceObserver
 import frc.team4069.saturn.lib.mathematics.statespace.StateSpacePlant
-import frc.team4069.saturn.lib.mathematics.units.Length
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
-import frc.team4069.saturn.lib.mathematics.units.meter
-import frc.team4069.saturn.lib.mathematics.units.second
+import frc.team4069.saturn.lib.mathematics.units.*
+import frc.team4069.saturn.lib.mathematics.units.conversions.LinearVelocity
+import frc.team4069.saturn.lib.mathematics.units.conversions.meter
 
 class ElevatorController {
     private val plant = StateSpacePlant(ElevatorCoeffs.plantCoeffs)
@@ -26,13 +24,13 @@ class ElevatorController {
     val position get() = observer.xHat[0, 0].meter
     val velocity get() = observer.xHat[1, 0].meter.velocity
 
-    var measuredPosition: Length
+    var measuredPosition: SIUnit<Meter>
         get() = y[0].meter
         set(value) {
             y[0] = value.meter
         }
 
-    var measuredVelocity: LinearVelocity
+    var measuredVelocity: SIUnit<LinearVelocity>
         get() = y[1].meter.velocity
         set(value) {
             y[1] = value.value

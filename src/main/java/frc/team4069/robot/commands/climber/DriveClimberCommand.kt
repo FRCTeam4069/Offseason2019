@@ -5,11 +5,11 @@ import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.saturn.lib.commands.SaturnCommand
 
 class DriveClimberCommand : SaturnCommand(BoostCaboose) {
-    override suspend fun initialize() {
+    override fun initialize() {
         BoostCaboose.liftMaster.setNeutral()
     }
 
-    override suspend fun execute() {
+    override fun execute() {
 //        println(OI.climberSpeed) // remove this and it breaks, no touchy
         BoostCaboose.set(OI.climberSpeed)
     }

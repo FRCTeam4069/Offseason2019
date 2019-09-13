@@ -1,9 +1,10 @@
 package frc.team4069.robot
 
-import frc.team4069.saturn.lib.mathematics.units.feet
-import frc.team4069.saturn.lib.mathematics.units.inch
+import frc.team4069.saturn.lib.mathematics.units.conversions.feet
+import frc.team4069.saturn.lib.mathematics.units.conversions.inch
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.NativeUnitLengthModel
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STU
+import frc.team4069.saturn.lib.subsystem.DifferentialDriveModel
 
 object Constants {
     val DRIVETRAIN_WHEELBASE = 3.9.feet // Empirically determined by spinning fast in a circle
@@ -20,6 +21,9 @@ object Constants {
     // Ramsete constants
     const val kZeta = 0.99
     const val kB = 3.3 //3.2
+
+    val DRIVE_MODEL = DifferentialDriveModel(DRIVETRAIN_WHEELBASE,
+            DT_LEFT_KV, DT_LEFT_KA, DT_LEFT_KS)
 
     // Native unit models, translates from STU into real world units
     val DT_MODEL = NativeUnitLengthModel(4096.STU, 3.89.inch)

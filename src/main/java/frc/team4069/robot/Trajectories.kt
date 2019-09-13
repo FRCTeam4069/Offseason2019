@@ -2,20 +2,17 @@ package frc.team4069.robot
 
 import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.util.toFieldReference
-import frc.team4069.saturn.lib.mathematics.twodim.geometry.Pose2d
-import frc.team4069.saturn.lib.mathematics.twodim.geometry.Pose2dWithCurvature
-import frc.team4069.saturn.lib.mathematics.twodim.geometry.Rectangle2d
-import frc.team4069.saturn.lib.mathematics.twodim.geometry.Translation2d
+import frc.team4069.saturn.lib.mathematics.twodim.geometry.*
 import frc.team4069.saturn.lib.mathematics.twodim.trajectory.DefaultTrajectoryGenerator
 import frc.team4069.saturn.lib.mathematics.twodim.trajectory.constraints.CentripetalAccelerationConstraint
 import frc.team4069.saturn.lib.mathematics.twodim.trajectory.constraints.TimingConstraint
 import frc.team4069.saturn.lib.mathematics.twodim.trajectory.constraints.VelocityLimitRegionConstraint
 import frc.team4069.saturn.lib.mathematics.twodim.trajectory.types.TimedTrajectory
 import frc.team4069.saturn.lib.mathematics.units.*
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearAcceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
+import frc.team4069.saturn.lib.mathematics.units.conversions.LinearAcceleration
+import frc.team4069.saturn.lib.mathematics.units.conversions.LinearVelocity
+import frc.team4069.saturn.lib.mathematics.units.conversions.feet
+import frc.team4069.saturn.lib.mathematics.units.conversions.inch
 
 /**
  * Contains all pre-generated trajectories for use in autonomous
@@ -30,7 +27,7 @@ object Trajectories {
             CentripetalAccelerationConstraint(kMaxCentripetalAcceleration)
     )
 
-    val cameraToIntake = Pose2d(-25.inch, 0.inch)
+    val cameraToIntake = Pose2d(-25.inch, 0.inch, 0.radian)
 
     val frontCargoShip = waypoints(
             Pose2d(5.498.feet, 13.71.feet, 0.degree),
@@ -267,16 +264,16 @@ object Trajectories {
     )
 
     fun trapezoidToDist(startPose: Pose2d = Drivetrain.robotPosition,
-                        dist: Length,
+                        dist: SIUnit<Meter>,
                         overrideEndRot: Rotation2d? = null,
-                        maxVelocity: LinearVelocity = kMaxVelocity,
-                        startVelocity: LinearVelocity = 0.feet.velocity,
+                        maxVelocity: SIUnit<LinearVelocity> = kMaxVelocity,
+                        startVelocity: SIUnit<LinearVelocity> = 0.feet.velocity,
                         constraints: List<TimingConstraint<Pose2dWithCurvature>> = kConstraints): TimedTrajectory<Pose2dWithCurvature> {
         // The robot-relative rotation if this isn't null will be the difference between it and the current angle
         val rot = if (overrideEndRot != null) {
             overrideEndRot - startPose.rotation
         } else {
-            0.radian
+            Rotation2d(0.0)
         }
 
         // Transform the robot-relative pose to be field relative
@@ -295,8 +292,8 @@ object Trajectories {
             relativeEndingPose: Pose2d,
             constraints: List<TimingConstraint<Pose2dWithCurvature>> = kConstraints,
             midpoints: List<Pose2d>? = null,
-            maxVelocity: LinearVelocity = kMaxVelocity,
-            startVelocity: LinearVelocity = 0.feet.velocity,
+            maxVelocity: SIUnit<LinearVelocity> = kMaxVelocity,
+            startVelocity: SIUnit<LinearVelocity> = 0.feet.velocity,
             reversed: Boolean
     ): TimedTrajectory<Pose2dWithCurvature> {
         return if (midpoints == null) {
@@ -318,9 +315,9 @@ object Trajectories {
     private fun List<Pose2d>.generateTrajectory(
             name: String,
             reversed: Boolean,
-            startVelocity: LinearVelocity = 0.meter.velocity,
-            maxVelocity: LinearVelocity = kMaxVelocity,
-            maxAcceleration: LinearAcceleration = kMaxAcceleration,
+            startVelocity: SIUnit<LinearVelocity> = 0.meter.velocity,
+            maxVelocity: SIUnit<LinearVelocity> = kMaxVelocity,
+            maxAcceleration: SIUnit<LinearAcceleration> = kMaxAcceleration,
             constraints: List<TimingConstraint<Pose2dWithCurvature>> = kConstraints
     ): TimedTrajectory<Pose2dWithCurvature> {
         println("Generating $name")

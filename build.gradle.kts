@@ -6,11 +6,22 @@ import edu.wpi.first.toolchain.NativePlatforms
 import jaci.gradle.deploy.artifact.ArtifactsExtension
 import jaci.gradle.deploy.artifact.FileTreeArtifact
 import jaci.gradle.deploy.target.TargetsExtension
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-serialization:1.3.41")
+    }
+}
 
 plugins {
-    kotlin("jvm") version "1.3.31"
+    kotlin("jvm") version "1.3.41"
     id("edu.wpi.first.GradleRIO") version "2019.3.2"
 }
+
+apply(plugin = "kotlinx-serialization")
 
 val kMainRobotClass = "frc.team4069.robot.RobotKt"
 
@@ -36,12 +47,15 @@ dependencies {
     // Kotlin Standard Library and Coroutines
     compile(kotlin("stdlib"))
     compile("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.1.0")
+    compile("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.11.1")
     
-    compile("com.github.FRCTeam4069:SaturnLibrary:f06a110915")
-//    compile("frc.team4069:SaturnLibrary:2019.05.28")
-    
-     compile("com.github.Oblarg", "Oblog", "2.10.0")
-    compile("de.mpicbg.scicomp:krangl:0.11")
+//    compile("com.github.FRCTeam4069:SaturnLibrary:2020.0.0-2")
+    compile("frc.team4069.saturn.lib:wpi:2020.0.0")
+    compile("frc.team4069.saturn.lib:vendorCTRE:2020.0.0")
+    compile("frc.team4069.saturn.lib:vendorREV:2020.0.0")
+
+    compile("com.github.Oblarg", "Oblog", "2.12.7")
+    compile("com.fazecast:jSerialComm:2.5.1")
     
     // WPILib
     wpi.deps.wpilib().forEach { compile(it) }

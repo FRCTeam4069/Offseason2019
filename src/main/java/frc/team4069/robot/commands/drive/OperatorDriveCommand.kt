@@ -6,11 +6,12 @@ import frc.team4069.robot.subsystems.Elevator
 import frc.team4069.saturn.lib.commands.SaturnCommand
 
 class OperatorDriveCommand : SaturnCommand(Drivetrain) {
-    override suspend fun execute() {
+    override fun execute() {
         // Limit the max output of the drivetrain if the elevator is extended to reduce chance of falling
-        val shouldSlow = Elevator.position > (Elevator.MAX_HEIGHT / 2)
+//        val shouldSlow = Elevator.position > (Elevator.MAX_HEIGHT / 2)
         val turn = OI.driveTurn
-        val speed = if(shouldSlow) OI.driveSpeed * 0.5 else OI.driveSpeed
+//        val speed = if(shouldSlow) OI.driveSpeed * 0.5 else OI.driveSpeed
+        val speed = OI.driveSpeed
 
         if(!OI.onlyAux) {
             Drivetrain.curvatureDrive(speed, turn, speed == 0.0)

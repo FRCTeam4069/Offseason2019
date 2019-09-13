@@ -8,10 +8,12 @@ import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.drive.OperatorDriveCommand
 import frc.team4069.saturn.lib.localization.DeadReckoningLocalization
+import frc.team4069.saturn.lib.mathematics.twodim.control.RamseteTracker
+import frc.team4069.saturn.lib.mathematics.twodim.control.TrajectoryTracker
+import frc.team4069.saturn.lib.mathematics.twodim.control.TrajectoryTrackerOutput
 import frc.team4069.saturn.lib.mathematics.units.*
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
+import frc.team4069.saturn.lib.mathematics.units.conversions.feet
+import frc.team4069.saturn.lib.mathematics.units.conversions.meter
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import frc.team4069.saturn.lib.sensors.SaturnPigeon
@@ -27,6 +29,9 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     override val leftMotor = SaturnSRX(RobotMap.Drivetrain.LEFT_MAIN_SRX, Constants.DT_MODEL)
     override val rightMotor = SaturnSRX(RobotMap.Drivetrain.RIGHT_MAIN_SRX, Constants.DT_MODEL)
 
+    override val trajectoryTracker = RamseteTracker(Constants.kB, Constants.kZeta)
+    override val driveModel = Constants.DRIVE_MODEL
+
     val auxMotor = TalonSRX(RobotMap.Drivetrain.AUXILIARY_MAIN_SRX)
     val auxSlave = TalonSRX(RobotMap.Drivetrain.AUXILIARY_SLAVE_SRX)
 
@@ -40,10 +45,10 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
 
     override val localization = DeadReckoningLocalization(gyro, { leftPosition }, { rightPosition })
 
-    val leftPosition: Length
+    val leftPosition: SIUnit<Meter>
         get() = leftMotor.encoder.position
 
-    val rightPosition: Length
+    val rightPosition: SIUnit<Meter>
         get() = rightMotor.encoder.position
 
     init {
@@ -119,7 +124,7 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     }
 
     override fun teleopReset() {
-        OperatorDriveCommand().start()
+        OperatorDriveCommand().schedule()
     }
 
     override fun tankDrive(left: Double, right: Double) {
@@ -177,15 +182,16 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
         }
     }
 
-    fun set(left: LinearVelocity, right: LinearVelocity, leftAff: Double = 0.0,
-            rightAff: Double = 0.0) {
-        periodicIO.apply {
-            leftDemand = left.value
-            rightDemand = right.value
-            leftArbFF = leftAff
-            rightArbFF = rightAff
-        }
+    override fun setOutput(output: TrajectoryTrackerOutput) {
         wantedState = State.PathFollowing
+        val demand = driveModel.getDemand(output)
+
+        periodicIO.apply {
+            leftDemand = demand.leftSetpoint.value
+            rightDemand = demand.rightSetpoint.value
+            leftArbFF = demand.leftArbFF
+            rightArbFF = demand.rightArbFF
+        }
     }
 
     fun reduceLimits() {
@@ -202,7 +208,7 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
         ))
     }
 
-    fun motionMagicRelative(length: Length) {
+    fun motionMagicRelative(length: SIUnit<Meter>) {
         periodicIO.apply {
             leftDemand = this@Drivetrain.leftPosition.meter + length.meter
             rightDemand = this@Drivetrain.rightPosition.meter + length.meter

@@ -4,19 +4,20 @@ import edu.wpi.first.wpilibj.Notifier
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
+import frc.team4069.keigen.*
 import frc.team4069.robot.commands.elevator.OperatorElevatorCommand
 import frc.team4069.robot.control.elevator.ElevatorController
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import frc.team4069.saturn.lib.mathematics.units.*
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.LinearVelocity
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.inchesPerSecond
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
 import frc.team4069.saturn.lib.mathematics.onedim.control.TrapezoidalProfile
+import frc.team4069.saturn.lib.mathematics.units.conversions.LinearVelocity
+import frc.team4069.saturn.lib.mathematics.units.conversions.inch
+import frc.team4069.saturn.lib.mathematics.units.conversions.inchesPerSecond
+import frc.team4069.saturn.lib.mathematics.units.conversions.meter
 import kotlin.math.abs
 
 object Elevator : SaturnSubsystem(), Loggable {
@@ -37,6 +38,7 @@ object Elevator : SaturnSubsystem(), Loggable {
         defaultCommand = OperatorElevatorCommand()
         val maxVel = Constants.ELEVATOR_MODEL.toNativeUnitVelocity(1.133.meter.velocity)
                 .STUPer100ms
+        println(maxVel)
         masterTalon.apply {
             configCurrentLimit(true, SaturnSRX.CurrentLimitConfig(
                     peakCurrentLimit = 0.amp,
@@ -68,7 +70,7 @@ object Elevator : SaturnSubsystem(), Loggable {
     }
 
     override fun teleopReset() {
-        OperatorElevatorCommand().start()
+        OperatorElevatorCommand().schedule()
     }
 
     fun setDutyCycle(output: Double) {
@@ -76,22 +78,22 @@ object Elevator : SaturnSubsystem(), Loggable {
         wantedState = State.OpenLoop
     }
 
-    fun setPosition(targetPosition: Length) {
+    fun setPosition(targetPosition: SIUnit<Meter>) {
         periodicIO.demand = targetPosition.meter
         controller.motionProfile = if(targetPosition < position && abs(targetPosition.inch - position.inch) > 5.0) {
             TrapezoidalProfile(targetPosition, 15.inch.velocity, 30.inch.acceleration, initialX = position) // Dont go as fast going down cause gravity
         }else {
-            TrapezoidalProfile(targetPosition, 30.inch.velocity, 45.inch.acceleration,
+            TrapezoidalProfile(targetPosition, 30.inch.velocity, 20.inch.acceleration,
                 initialX = position)
         }
 
         wantedState = State.ClosedLoop
     }
 
-    val position: Length
+    val position: SIUnit<Meter>
         get() = masterTalon.encoder.position
 
-    val velocity: LinearVelocity
+    val velocity: SIUnit<LinearVelocity>
         get() = masterTalon.encoder.velocity
 
 
@@ -169,7 +171,7 @@ object Elevator : SaturnSubsystem(), Loggable {
      * The provided length is the distance of the powered (and sensored) first stage of the elevator.
      * The carriage of the elevator goes a lot higher
      */
-    enum class Position(val length: Length) {
+    enum class Position(val length: SIUnit<Meter>) {
         LOW_ROCKET_CARGO_HATCH(3.73.inch),
         MID_ROCKET_CARGO_HATCH(19.1.inch),
         HIGH_ROCKET_CARGO_HATCH(30.4.inch),

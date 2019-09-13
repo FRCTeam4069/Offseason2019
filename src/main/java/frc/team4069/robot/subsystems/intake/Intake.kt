@@ -7,11 +7,15 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.intake.OperatorControlIntakeCommand
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
-import frc.team4069.saturn.lib.mathematics.units.Rotation2d
+import frc.team4069.saturn.lib.mathematics.units.Radian
+import frc.team4069.saturn.lib.mathematics.units.SIUnit
+import frc.team4069.saturn.lib.mathematics.units.conversions.degree
+import frc.team4069.saturn.lib.mathematics.units.conversions.radian
 import frc.team4069.saturn.lib.mathematics.units.degree
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.annotations.Log
 import kotlin.math.absoluteValue
+import kotlin.math.cos
 
 object Intake : SaturnSubsystem(), Loggable {
     private val talon = TalonSRX(RobotMap.Intake.MAIN_SRX)
@@ -54,7 +58,7 @@ object Intake : SaturnSubsystem(), Loggable {
         }
     }
 
-    val angle: Rotation2d
+    val angle: SIUnit<Radian>
         get() = (-(360.0 * (pivot.selectedSensorPosition / 7540)).degree + 90.degree)
 
 
@@ -77,7 +81,7 @@ object Intake : SaturnSubsystem(), Loggable {
                     pivot.set(ControlMode.Position, lowerTarget, DemandType.ArbitraryFeedForward, -0.3)
                 }
             } else {
-                pivot.set(ControlMode.Position, upperTarget, DemandType.ArbitraryFeedForward, -0.05 * angle.cos)
+                pivot.set(ControlMode.Position, upperTarget, DemandType.ArbitraryFeedForward, -0.05 * cos(angle.radian))
             }
         } else {
             pivot.set(ControlMode.PercentOutput, periodicIO.pivotSpeed)
@@ -97,7 +101,7 @@ object Intake : SaturnSubsystem(), Loggable {
     fun get() = talon.motorOutputPercent
 
     override fun teleopReset() {
-        OperatorControlIntakeCommand().start()
+        OperatorControlIntakeCommand().schedule()
     }
 
     private class PeriodicIO : Loggable {

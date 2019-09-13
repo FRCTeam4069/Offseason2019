@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from pipeline import TapePipeline
 import math
-
+import json
 
 class TapeDetector:
     TARGET_STRIP_WIDTH = 2.0  # in
@@ -136,10 +136,11 @@ class TapeDetector:
             retval, rvec, tvec = cv2.solvePnP(self.outsideTargetCoords, outerCorners, self.camMatrix, self.distCoeffs)
 
             if retval:
-                dist, x, z = self.computeOutputValues(rvec, tvec)
-                distances.append([dist, meanTapeXPos, meanTapeYPos])
+                x, z = self.computeOutputValues(rvec, tvec)
+                # distances.append([dist, meanTapeXPos, meanTapeYPos])
                 # if idx == 0:
-                jevois.sendSerial(f"RDIST {dist},{x},{z}") # Send the 3 legs of the tvec triangle to the RIO
+                jevois.sendSerial(json.dumps({"time": 0, "targetX": x, "targetZ": z}))
+                # jevois.sendSerial(f"RDIST {dist},{x},{z}") # Send the 3 legs of the tvec triangle to the RIO
                 # jevois.sendSerial(f"OPTION {dist},{button}")
         outframe.sendCv(self.outimg)
 
@@ -148,28 +149,7 @@ class TapeDetector:
         x = tvec[0][0]
         z = tvec[2][0]
 
-        dist = math.sqrt(x ** 2 + z ** 2)
-
-        euler_angles = self._rodrigues_to_euler(rvec)
-
-        return dist, x, z
-
-    def _rodrigues_to_euler(self, rvec):
-        """Convert the rodrigues rvec into component euler angles in radians"""
-        mat, jac = cv2.Rodrigues(rvec)
-        sy = np.sqrt(mat[0, 0] * mat[0, 0] + mat[1, 0] * mat[1, 0])
-        singular = sy < 1e-6
-
-        if not singular:
-            x = np.math.atan2(mat[2, 1], mat[2, 2])
-            y = np.math.atan2(-mat[2, 0], sy)
-            z = np.math.atan2(mat[1, 0], mat[0, 0])
-        else:
-            x = np.math.atan2(-mat[1, 2], mat[1, 1])
-            y = np.math.atan2(-mat[2, 0], sy)
-            z = 0
-
-        return np.array([x, y, z])
+        return x, z
 
     def getCorners(self, contours, bitmask):
         contours = [x.reshape(-1, 2) for x in contours[:2]]

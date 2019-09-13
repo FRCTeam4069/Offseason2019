@@ -5,12 +5,10 @@ import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.intake.AlignHatchIntakeCommand
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
-import frc.team4069.saturn.lib.mathematics.units.Length
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.acceleration
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.inchesPerSecond
-import frc.team4069.saturn.lib.mathematics.units.derivedunits.velocity
-import frc.team4069.saturn.lib.mathematics.units.inch
-import frc.team4069.saturn.lib.mathematics.units.meter
+import frc.team4069.saturn.lib.mathematics.units.*
+import frc.team4069.saturn.lib.mathematics.units.conversions.inch
+import frc.team4069.saturn.lib.mathematics.units.conversions.inchesPerSecond
+import frc.team4069.saturn.lib.mathematics.units.conversions.meter
 import frc.team4069.saturn.lib.mathematics.units.nativeunits.STUPer100ms
 import frc.team4069.saturn.lib.motor.ctre.SaturnSRX
 import io.github.oblarg.oblog.Loggable
@@ -49,7 +47,7 @@ object SlideIntake : SaturnSubsystem(), Loggable {
     }
 
     override fun teleopReset() {
-        AlignHatchIntakeCommand().start()
+        AlignHatchIntakeCommand().schedule()
     }
 
     override fun periodic() {
@@ -77,7 +75,7 @@ object SlideIntake : SaturnSubsystem(), Loggable {
         periodicIO.demand = dutyCycle
     }
 
-    fun setPosition(position: Length) {
+    fun setPosition(position: SIUnit<Meter>) {
         wantedState = State.MotionMagic
         periodicIO.demand = position.meter
     }
