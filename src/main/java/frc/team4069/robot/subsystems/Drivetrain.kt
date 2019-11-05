@@ -7,7 +7,8 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts
 import frc.team4069.robot.Constants
 import frc.team4069.robot.RobotMap
 import frc.team4069.robot.commands.drive.OperatorDriveCommand
-import frc.team4069.saturn.lib.localization.DeadReckoningLocalization
+import frc.team4069.saturn.lib.localization.DifferentialDriveLocalization
+import frc.team4069.saturn.lib.mathematics.twodim.control.DefaultLTVTracker
 import frc.team4069.saturn.lib.mathematics.twodim.control.RamseteTracker
 import frc.team4069.saturn.lib.mathematics.twodim.control.TrajectoryTracker
 import frc.team4069.saturn.lib.mathematics.twodim.control.TrajectoryTrackerOutput
@@ -29,7 +30,8 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
     override val leftMotor = SaturnSRX(RobotMap.Drivetrain.LEFT_MAIN_SRX, Constants.DT_MODEL)
     override val rightMotor = SaturnSRX(RobotMap.Drivetrain.RIGHT_MAIN_SRX, Constants.DT_MODEL)
 
-    override val trajectoryTracker = RamseteTracker(Constants.kB, Constants.kZeta)
+//    override val trajectoryTracker = RamseteTracker(Constants.kB, Constants.kZeta)
+    override val trajectoryTracker = DefaultLTVTracker
     override val driveModel = Constants.DRIVE_MODEL
 
     val auxMotor = TalonSRX(RobotMap.Drivetrain.AUXILIARY_MAIN_SRX)
@@ -43,7 +45,7 @@ object Drivetrain : TankDriveSubsystem(), Loggable {
 
     override val gyro = SaturnPigeon(leftSlave.talon)
 
-    override val localization = DeadReckoningLocalization(gyro, { leftPosition }, { rightPosition })
+    override val localization = DifferentialDriveLocalization(gyro, { leftPosition }, { rightPosition })
 
     val leftPosition: SIUnit<Meter>
         get() = leftMotor.encoder.position

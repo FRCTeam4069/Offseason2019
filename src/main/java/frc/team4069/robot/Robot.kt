@@ -1,8 +1,6 @@
 package frc.team4069.robot
 
 import edu.wpi.first.wpilibj.Compressor
-import edu.wpi.first.wpilibj.RobotBase
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import frc.team4069.robot.subsystems.BoostCaboose
 import frc.team4069.robot.subsystems.Drivetrain
 import frc.team4069.robot.subsystems.Elevator
@@ -12,9 +10,9 @@ import frc.team4069.robot.util.PressureSensor
 import frc.team4069.saturn.lib.SaturnRobot
 import frc.team4069.saturn.lib.commands.SaturnSubsystem
 import frc.team4069.saturn.lib.hid.SaturnHID
+import frc.team4069.saturn.lib.subsystem.CharacterizationCommand
 import io.github.oblarg.oblog.Loggable
 import io.github.oblarg.oblog.Logger
-import kotlinx.coroutines.ObsoleteCoroutinesApi
 
 object Robot : SaturnRobot() {
     private var brownedOut = false
@@ -34,8 +32,8 @@ object Robot : SaturnRobot() {
         +Elevator
 
         // Controls registering
-        +OI.driveController
-        +OI.operatorController
+//        +OI.driveController
+//        +OI.operatorController
 
         // Helper initialization
 //        Trajectories
@@ -48,7 +46,7 @@ object Robot : SaturnRobot() {
     }
 
     override fun robotPeriodic() {
-        Logger.updateEntries()
+//        Logger.updateEntries()
 
         if (pressureSensor.pressure < 70.0) {
             compressor.start()
@@ -71,6 +69,7 @@ object Robot : SaturnRobot() {
 
     override fun autonomousInit() {
 //        autoChooser.selected.srt()
+        CharacterizationCommand(Drivetrain).schedule()
     }
 
     private operator fun SaturnHID<*>.unaryPlus() {
